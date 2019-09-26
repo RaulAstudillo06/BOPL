@@ -20,10 +20,6 @@ class Utility(object):
         self.parameter_distribution = parameter_distribution
         self.expectation = expectation
         self.affine = affine
-        if parameter_distribution.distribution_updater is not None:
-            self.distribution_updater_available = True
-        else:
-            self.distribution_updater_available = False
     
     def eval_func_and_gradient(self, y, theta):
         """
@@ -48,8 +44,5 @@ class Utility(object):
     def sample_parameter(self, number_of_samples=1):
         return self.parameter_distribution.sample(number_of_samples)
 
-    def update_parameter_distribution(self, Y):
-        if self.distribution_updater_available:
-            self.parameter_distribution.update_distribution(Y)
-        else:
-            print('Utility distribution updater has not been provided')
+    def update_parameter_distribution(self, underlying_true_utility_func, Y):
+        self.parameter_distribution.add_preference_information(underlying_true_utility_func, Y)

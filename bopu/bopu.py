@@ -30,11 +30,11 @@ class BOPU(object):
         self.Y = Y_init
         self.true_underlying_utility_func = true_underlying_utility_func
         if dynamic_utility_parameter_distribution:
-            if self.utility.distribution_updater_available:
+            if self.utility.parameter_distribution.elicitation_strategy is not None:
                 self.dynamic_utility_parameter_distribution = True
             else:
                 self.dynamic_utility_parameter_distribution = False
-                print('Utility distribution updater is not available')
+                print('Preference elicitation strategy has not been provided')
         else:
             self.dynamic_utility_parameter_distribution = False
 
@@ -125,6 +125,8 @@ class BOPU(object):
 
         # Initialize time cost of the evaluations
         while (self.max_time > self.cum_time) and (self.num_acquisitions < self.max_iter):
+            if (self.num_acquisitions % self.utility_distribution_update_interval) == 0:
+                self._update_utility_distribution
             self.suggested_sample = self.compute_next_evaluations()
             self.X = np.vstack((self.X, self.suggested_sample))
 
@@ -393,6 +395,11 @@ class BOPU(object):
         X_inmodel = self.space.unzip_inputs(self.X)
         Y_inmodel = list(self.Y)
         self.model.updateModel(X_inmodel, Y_inmodel)
+
+    def _update_utility_distribution(self):
+        """
+        """
+        self.utility.update_parameter_distribution(self.true_underlying_utility_func, self.Y)
 
     def _distance_last_evaluations(self):
         """
