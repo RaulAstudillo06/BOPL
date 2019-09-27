@@ -60,6 +60,12 @@ if __name__ == '__main__':
     initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1))
 
     # Utility function
+    def utility_func(y, parameter):
+        return np.dot(parameter, y)
+
+    def utility_gradient(y, parameter):
+        return parameter
+    
     L = 10
     utility_parameter_support = np.empty((L, 2))
     aux = (np.pi * np.arange(L)) / (2 * (L - 1))
@@ -67,14 +73,7 @@ if __name__ == '__main__':
     utility_parameter_support[:, 1] = np.sin(aux)
     print(np.sum(utility_parameter_support ** 2, axis=1))
     utility_parameter_prob_distribution = np.ones((L,)) / L
-    utility_param_distribution = UtilityDistribution(support=utility_parameter_support, prob_dist=utility_parameter_prob_distribution)
-
-    def utility_func(y, parameter):
-        return np.dot(parameter, y)
-
-    def utility_gradient(y, parameter):
-        return parameter
-
+    utility_param_distribution = UtilityDistribution(support=utility_parameter_support, prob_dist=utility_parameter_prob_distribution, utility_func=utility_func, elicitation_strategy=None)
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
@@ -137,10 +136,10 @@ if __name__ == '__main__':
             return utility_func(y, true_underlying_utility_parameter)
 
         bopu = BOPU(model, space, objective, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
-        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=2, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
 
     else:
-        for i in range(1, 2):
+        for i in range(1):
             experiment_number = str(i)
             filename = [experiment_name, sampling_policy_name, experiment_number]
 

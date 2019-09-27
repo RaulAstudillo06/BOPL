@@ -72,6 +72,9 @@ class UtilityDistribution(object):
                 self.support = self.support[feasible_indices]
                 self.prob_dist = self.prob_dist[feasible_indices]
                 self.prob_dist /= np.sum(self.prob_dist)
+                print('New support and posterior probability distribution.')
+                print(self.support)
+                print(self.prob_dist)
             suggested_pair.append(pref)
             self.preference_information.append(suggested_pair)
 

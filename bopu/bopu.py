@@ -199,6 +199,8 @@ class BOPU(object):
                 if filename is not None:
                     results_folder_name = self.project_path + '/experiments/results/' + filename[
                         0] + '/historical_integrated_optimal_values'
+                    if not os.path.exists(results_folder_name):
+                        os.makedirs(results_folder_name)
                     results_filename = filename[0] + '_' + filename[1] + '_true_integrated_optimal_value'
                     directory = results_folder_name + '/' + results_filename + '.txt'
                     np.savetxt(directory, self.true_integrated_optimal_value)
