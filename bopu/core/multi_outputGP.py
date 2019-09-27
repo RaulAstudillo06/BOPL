@@ -1,7 +1,7 @@
 # Copyright (c) 2018, Raul Astudillo
 
 import numpy as np
-import GPyOpt
+import aux_software.GPyOpt as GPyOpt
 #from pathos.multiprocessing import ProcessingPool as Pool
 from multiprocessing import Process
 
@@ -42,7 +42,7 @@ class MultiOutputGP(object):
         self.n_samples = n_samples
             
         if ARD is None:
-            self.ARD = [False]*output_dim
+            self.ARD = [True]*output_dim
         else:
             self.ARD = ARD
 
@@ -57,69 +57,27 @@ class MultiOutputGP(object):
                                                                 n_samples=self.n_samples, ARD=self.ARD[j],
                                                                 verbose=False)
 
-    #@staticmethod
-    #def fromConfig(config):
-        #return multi_outputGP(**config)
-        
-    def updateModel2(self, X_all, Y_all):
-        """
-        Updates the model with new observations.
-        """
-        self.Y_all = Y_all
-        for j in range(self.output_dim):
-            self.X_all[j] = np.copy(X_all)  
-        jobs = []   
-        for j in range(self.output_dim):
-            p = Process(target=self.updateModel_single_output, args=(j,))
-            jobs.append(p)
-            p.start()
-        for proc in jobs:
-            proc.join()
-        
-        print(self.output[0].predict(X_all[0]))
-    
-
-        
-    def updateModel3(self, X_all, Y_all):
-        """
-        Updates the model with new observations.
-        """
-        self.Y_all = Y_all
-        for j in range(self.output_dim):
-            self.X_all[j] = np.copy(X_all)
-        pool = Pool(4)
-        print(list(range(self.output_dim)))
-        pool.starmap(self.updateModel_single_output, [(0,),(1,)])
-        #pool.close()
-        #pool.join()
-        #print('finished!')    
-
     def updateModel(self, X_all, Y_all):
         """
         Updates the model with new observations.
         """
         for j in range(self.output_dim):
             self.output[j].updateModel(X_all,Y_all[j],None,None)
-            
-            
+
     def updateModel_single_output(self, index):
         self.output[index].updateModel(self.X_all[index],self.Y_all[index],None,None)
-        
-    
+
     def number_of_hyps_samples(self):
         return self.n_samples
-                  
-    
+
     def set_hyperparameters(self, n):
         for j in range(self.output_dim):
             self.output[j].set_hyperparameters(n)
-            
     
     def set_hyperparameters2(self, hyperparameters):
         for j in range(self.output_dim):
             self.output[j].set_hyperparameters(hyperparameters[j])
-            
-            
+
     def get_hyperparameters_samples(self, n_samples=1):
         hyperparameters = [[None]*self.output_dim]*n_samples
         for j in range(self.output_dim):
@@ -127,13 +85,11 @@ class MultiOutputGP(object):
                 hyperparameters[i][j] = self.output[j].get_hyperparameters_samples(n_samples)[i] 
         return hyperparameters
 
-
     def get_evaluated_points(self):
         """
         Returns posterior mean at the points that have been already evaluated.
         """
         return np.copy(self.output[0].model.X)
-            
 
     def predict(self,  X,  full_cov=False):
         """
@@ -160,8 +116,7 @@ class MultiOutputGP(object):
             m[j,:] = tmp1[:,0]
             cov[j,:] = tmp2[:,0]
         return m, cov
-    
-    
+
     def posterior_mean(self,  X):
         """
         Predictions with the model. Returns posterior mean at X.
@@ -171,16 +126,14 @@ class MultiOutputGP(object):
         for j in range(self.output_dim):
           m[j,:]  = self.output[j].posterior_mean(X)[:,0]
         return m
-    
-    
+
     def posterior_mean_at_evaluated_points(self):
         """
         Returns posterior mean at the points that have been already evaluated.
         """
         return self.posterior_mean(self.output[0].model.X)
-    
-    
-    def posterior_variance(self,  X):
+
+    def posterior_variance(self, X):
         """
         Returns posterior variance at X.
         """
@@ -189,7 +142,6 @@ class MultiOutputGP(object):
         for j in range(self.output_dim):
             var[j,:] = self.output[j].posterior_variance(X)[:,0]
         return var
-  
     
     def posterior_variance_noiseless(self, X):
         """
@@ -198,7 +150,6 @@ class MultiOutputGP(object):
         for j in range(self.output_dim):
             var[j,:] = self.output[j].posterior_variance_noiseless(X)[:,0]
         return var
-   
     
     def partial_precomputation_for_covariance(self, X):
         """
@@ -208,8 +159,7 @@ class MultiOutputGP(object):
         """
         for j in range(self.output_dim):
             self.output[j].partial_precomputation_for_covariance(X)
-            
-    
+
     def partial_precomputation_for_covariance_gradient(self, x):
         """
         Computes the posterior covariance between points.
@@ -219,7 +169,6 @@ class MultiOutputGP(object):
         for j in range(self.output_dim):
             self.output[j].partial_precomputation_for_covariance_gradient(x)
             
-            
     def partial_precomputation_for_variance_conditioned_on_next_point(self, next_point):
         """
         Computes the posterior covariance between points.
@@ -228,7 +177,6 @@ class MultiOutputGP(object):
         """
         for j in range(self.output_dim):
             self.output[j].partial_precomputation_for_variance_conditioned_on_next_point(next_point)
-        
         
     def posterior_variance_conditioned_on_next_point(self, X):
         """
@@ -240,8 +188,7 @@ class MultiOutputGP(object):
         for j in range(self.output_dim):
             var[j,:] = self.output[j].posterior_variance_conditioned_on_next_point(X)[:,0]
         return var
-    
-    
+
     def posterior_variance_gradient_conditioned_on_next_point(self, X):
         """
         Computes the posterior covariance between points.
@@ -253,7 +200,6 @@ class MultiOutputGP(object):
             dvar_dX[j,:,:] = self.output[j].posterior_variance_gradient_conditioned_on_next_point(X)    
         return dvar_dX
 
-
     def posterior_covariance_between_points(self,  X1,  X2):
         """
         Computes the posterior covariance between points.
@@ -264,7 +210,6 @@ class MultiOutputGP(object):
         for j in range(0,self.output_dim):
             cov[j,:,:] = self.output[j].posterior_covariance_between_points(X1, X2)
         return cov
-    
     
     def posterior_covariance_between_points_partially_precomputed(self, X1, X2):
         """
@@ -280,7 +225,6 @@ class MultiOutputGP(object):
             cov[j,:,:] = self.output[j].posterior_covariance_between_points_partially_precomputed(X1, X2)
         return cov
     
-    
     def posterior_mean_gradient(self,  X):
         """
         Computes dmu/dX(X).
@@ -292,8 +236,7 @@ class MultiOutputGP(object):
             dmu_dX[j,:,:] = tmp
 
         return dmu_dX
-    
-    
+
     def posterior_variance_gradient(self,  X):
         """
         Computes dmu/dX(X).
@@ -329,7 +272,6 @@ class MultiOutputGP(object):
             dK_dX[j,:,:] = self.output[j].posterior_covariance_gradient_partially_precomputed(X, x2)
         return dK_dX
     
-    
     def get_model_parameters(self):
         """
         Returns a 2D numpy array with the parameters of the model
@@ -337,7 +279,6 @@ class MultiOutputGP(object):
         model_parameters = [None]*self.output_dim
         for j in range(0,self.output_dim):
             model_parameters[j] = self.output[j].get_model_parameters()
-            
 
     def get_model_parameters_names(self):
         """
@@ -348,7 +289,7 @@ class MultiOutputGP(object):
             model_parameters_names[j] = self.output[j].get_model_parameters_names()
 
 
-class multi_outputGP_fixed_hyps(object):
+class MultiOutputGP_FixedHyps(object):
     """
     General class for handling a multi-output Gaussian proces based on GPyOpt.
 

@@ -62,7 +62,7 @@ class UtilityDistribution(object):
             pref = preference_encoder(u1, u2)
             if self.support is not None:
                 feasible_indices = []
-                for index in len(self.support):
+                for index in range(len(self.support)):
                     parameter = self.support[index]
                     u1_aux = self.utility_func(suggested_pair[0], parameter)
                     u2_aux = self.utility_func(suggested_pair[1], parameter)
@@ -73,10 +73,12 @@ class UtilityDistribution(object):
                 self.prob_dist = self.prob_dist[feasible_indices]
                 self.prob_dist /= np.sum(self.prob_dist)
                 print('New support and posterior probability distribution.')
+                print(suggested_pair)
                 print(self.support)
                 print(self.prob_dist)
             suggested_pair.append(pref)
             self.preference_information.append(suggested_pair)
+            print(self.preference_information)
 
 
 

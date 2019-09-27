@@ -73,13 +73,19 @@ class BOPU(object):
                 self.compute_true_underlying_optimal_value = True
                 self.get_true_underlying_optimal_value(filename)
             else:
+                self.compute_true_underlying_optimal_value = False
                 print('Cannot compute underlying optimal values without true underlying utility function')
+        else:
+            self.compute_true_underlying_optimal_value = False
 
         if compute_integrated_optimal_values:
             if not self.dynamic_utility_parameter_distribution:
                 self.compute_integrated_optimal_values = True
             else:
+                self.compute_integrated_optimal_values = False
                 print('It does not make sense to compute integrated optimal values when the utility distribution is dynamic.')
+        else:
+            self.compute_integrated_optimal_values = False
 
         if compute_true_integrated_optimal_value:
             if not self.dynamic_utility_parameter_distribution:
@@ -126,7 +132,7 @@ class BOPU(object):
         # Initialize time cost of the evaluations
         while (self.max_time > self.cum_time) and (self.num_acquisitions < self.max_iter):
             if (self.num_acquisitions % self.utility_distribution_update_interval) == 0:
-                self._update_utility_distribution
+                self._update_utility_distribution()
             self.suggested_sample = self.compute_next_evaluations()
             self.X = np.vstack((self.X, self.suggested_sample))
 
@@ -380,7 +386,7 @@ class BOPU(object):
         for j in range(self.n_attributes):
             self.Y[j] = np.vstack((self.Y[j], self.Y_new[j]))
 
-    def compute_next_evaluations(self, pending_zipped_X=None, ignored_zipped_X=None):
+    def compute_next_evaluations(self):
         """
         Computes the location of the new evaluation (optimizes the acquisition in the standard case).
         :param pending_zipped_X: matrix of input configurations that are in a pending state (i.e., do not have an evaluation yet).
@@ -401,7 +407,8 @@ class BOPU(object):
     def _update_utility_distribution(self):
         """
         """
-        self.utility.update_parameter_distribution(self.true_underlying_utility_func, self.Y)
+        if self.dynamic_utility_parameter_distribution:
+            self.utility.update_parameter_distribution(self.true_underlying_utility_func, self.Y)
 
     def _distance_last_evaluations(self):
         """
