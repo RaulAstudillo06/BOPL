@@ -28,27 +28,36 @@ class UtilityDistribution(object):
             else:
                 self.use_full_support = False
     
-    def sample(self, number_of_samples=1, utility_func=None):
+    def sample(self, number_of_samples=1):
         if self.support is None:
             if len(self.preference_information) == 0:
-                parameter_samples = self.sample_generator(number_of_samples)
+                parameter_samples = self.prior_sample_generator(number_of_samples)
             else:
                 parameter_samples = []
                 number_of_gathered_samples = 0
+                test_counter = 0
                 while number_of_gathered_samples < number_of_samples:
                     suggested_sample = self.prior_sample_generator(1)[0]
+                    test_counter += 1
                     keep_verifying = True
                     counter = 0
                     while keep_verifying and counter < len(self.preference_information):
                         preference_information_item = self.preference_information[counter]
-                        u1 = utility_func(preference_information_item[0], suggested_sample)
-                        u2 = utility_func(preference_information_item[0], suggested_sample)
+                        u1 = self.utility_func(preference_information_item[0], suggested_sample)
+                        u2 = self.utility_func(preference_information_item[1], suggested_sample)
                         pref = preference_encoder(u1, u2)
                         if not pref == preference_information_item[2]:
+                            #print(pref)
+                            #print(preference_information_item[2])
+                            #print(self.preference_information)
+                            #print('Parameter sample does not agree with preference information')
                             keep_verifying = False
+                        counter += 1
                     if counter == len(self.preference_information):
                         parameter_samples.append(suggested_sample)
+                        number_of_gathered_samples += 1
                 parameter_samples = np.atleast_2d(parameter_samples)
+                print('Test counter = {}'.format(test_counter))
         else:
             indices = np.random.choice(int(len(self.support)), size=number_of_samples, p=self.prob_dist)
             parameter_samples = self.support[indices, :]

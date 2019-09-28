@@ -67,14 +67,26 @@ if __name__ == '__main__':
     def utility_gradient(y, parameter):
         return parameter
     
-    L = 10
-    utility_parameter_support = np.empty((L, 2))
-    aux = (np.pi * np.arange(L)) / (2 * (L - 1))
-    utility_parameter_support[:, 0] = np.cos(aux)
-    utility_parameter_support[:, 1] = np.sin(aux)
-    print(np.sum(utility_parameter_support ** 2, axis=1))
-    utility_parameter_prob_distribution = np.ones((L,)) / L
-    utility_param_distribution = UtilityDistribution(support=utility_parameter_support, prob_dist=utility_parameter_prob_distribution, utility_func=utility_func, elicitation_strategy=random_preference_elicitation)
+    #L = 10
+    #utility_parameter_support = np.empty((L, 2))
+    #aux = (np.pi * np.arange(L)) / (2 * (L - 1))
+    #utility_parameter_support[:, 0] = np.cos(aux)
+    #utility_parameter_support[:, 1] = np.sin(aux)
+    #print(np.sum(utility_parameter_support ** 2, axis=1))
+    #utility_parameter_prob_distribution = np.ones((L,)) / L
+
+    def prior_sample_generator(n_samples):
+        samples = np.empty((n_samples, 2))
+        alpha = 0.5 * np.pi * np.random.rand(n_samples)
+        samples[:, 0] = np.cos(alpha)
+        samples[:, 1] = np.sin(alpha)
+        return samples
+
+
+    utility_param_distribution = UtilityDistribution(prior_sample_generator=prior_sample_generator,
+                                                     utility_func=utility_func,
+                                                     elicitation_strategy=random_preference_elicitation)
+    #utility_param_distribution = UtilityDistribution(support=utility_parameter_support, prob_dist=utility_parameter_prob_distribution, utility_func=utility_func, elicitation_strategy=random_preference_elicitation)
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
@@ -92,35 +104,6 @@ if __name__ == '__main__':
         acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)
-
-    # Compute real optimum value
-    compute_real_optimum = False
-    if compute_real_optimum:
-        bounds = [(0, 1)] * d
-        starting_points = np.random.rand(100, d)
-        opt_val = 0.
-        for theta in utility_parameter_support:
-            def marginal_value_func(x):
-                x_copy = np.atleast_2d(x)
-                fx = np.empty((2,))
-                fx[0] = f1(x_copy)[0, 0]
-                fx[1] = f2(x_copy)[0, 0]
-                val = utility_func(fx, theta)
-                return -val
-
-            best_val_found = np.inf
-            for d0 in starting_points:
-                res = scipy.optimize.fmin_l_bfgs_b(marginal_value_func, d0, approx_grad=True, bounds=bounds)
-                if best_val_found > res[1]:
-                    best_val_found = res[1]
-                    marginal_opt = res[0]
-
-            print('Utility parameter: {}'.format(theta))
-            print('Marginal optimum: {}'.format(marginal_opt))
-            print('Marginal optimal value: {}'.format(-np.asscalar(best_val_found)))
-            opt_val -= best_val_found
-        opt_val /= len(utility_parameter_support)
-        print('Integrated real optimum: {}'.format(np.asscalar(opt_val)))
 
     # BO model
     max_iter = 100
@@ -145,8 +128,9 @@ if __name__ == '__main__':
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
             # True underlying utility
-            true_underlying_utility_parameter = utility.sample_parameter()
+            true_underlying_utility_parameter = utility.sample_parameter()[0]
             print(true_underlying_utility_parameter)
+            print(np.sum(true_underlying_utility_parameter ** 2))
 
             def true_underlying_utility_func(y):
                 return utility_func(y, true_underlying_utility_parameter)

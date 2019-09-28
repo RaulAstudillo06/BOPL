@@ -22,10 +22,11 @@ class AcquisitionFunction(SamplingPolicyBase):
         """
         Returns a suggested next point to evaluate.
         """
-        try:
-            self.acquisition_func.update_Z_samples()
-        except:
-            pass
+        self.acquisition_func.update_samples()
+        #try:
+            #self.acquisition_func.update_samples()
+        #except:
+            #pass
         # Update the context if any
         self.acquisition_func.optimizer.context_manager = ContextManager(self.space, None)
         # We zip the value in case there are categorical variables

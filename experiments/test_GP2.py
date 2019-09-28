@@ -25,7 +25,7 @@ if __name__ == '__main__':
     I = np.linspace(0., 1., 6)
     aux_grid = np.meshgrid(I, I, I, I)
     grid = np.array([a.flatten() for a in aux_grid]).T
-    kernel = GPy.kern.SE(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3]*d))
+    kernel = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3]*d))
     cov = kernel.K(grid)
     mean = np.zeros((6 ** d,))
     for j in range(m):
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         return -2*(y_aux - parameter)
     
         #  Parameter distribution
-    X = np.zeros((m, d))
+    X = np.zeros((2*m, d))
     bounds = [(0, 1)] * d
     starting_points = np.random.rand(100, d)
     for j in range(m):
@@ -79,10 +79,22 @@ if __name__ == '__main__':
             if best_val_found > res[1]:
                 best_val_found = res[1]
                 marginal_opt = res[0]
-        X[j,:] = marginal_opt        
-    print(X)
+        X[j, :] = marginal_opt
+
+        def marginal_func(x):
+            x_copy = np.atleast_2d(x)
+            val = aux_model[j].posterior_mean(x_copy)[:, 0]
+            return val
+
+        best_val_found = np.inf
+        for x0 in starting_points:
+            res = scipy.optimize.fmin_l_bfgs_b(marginal_func, x0, approx_grad=True, bounds=bounds)
+            if best_val_found > res[1]:
+                best_val_found = res[1]
+                marginal_opt = res[0]
+        X[j + m, :] = marginal_opt
     utility_parameter_support = f(X).T
-    utility_parameter_prob_distribution = np.ones((m,)) / m
+    utility_parameter_prob_distribution = np.ones((2*m,)) / (2*m)
     utility_param_distribution = UtilityDistribution(support=utility_parameter_support, prob_dist=utility_parameter_prob_distribution, utility_func=utility_func, elicitation_strategy=random_preference_elicitation)
     
         # Expectation of utility
@@ -131,7 +143,7 @@ if __name__ == '__main__':
             return utility_func(y, true_underlying_utility_parameter)
 
         bopu = BOPU(model, space, objective, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=2, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
 
     else:
         for i in range(1):
@@ -146,4 +158,4 @@ if __name__ == '__main__':
                 return utility_func(y, true_underlying_utility_parameter)
 
             bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=2, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)

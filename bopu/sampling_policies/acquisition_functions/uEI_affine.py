@@ -34,42 +34,34 @@ class uEI_affine(AcquisitionBase):
             self.cost_withGradients = constant_cost_withGradients
         self.use_full_support = self.utility.parameter_distribution.use_full_support
         self.number_of_gp_hyps_samples = 10
-
+        if self.use_full_support:
+            self.utility_parameter_samples = self.utility.parameter_distribution.support
+            self.utility_prob_dist = self.utility.parameter_distribution.prob_dist
+        else:
+            self.utility_parameter_samples = self.utility.sample_parameter(10)
 
     def _compute_acq(self, X):
         """
         Computes the Expected Improvement per unit of cost
         """
-        if self.use_full_support:
-            self.utility_parameter_samples = self.utility.parameter_distribution.support
-            self.utility_parameter_distribution = np.atleast_1d(self.utility.parameter_distribution.prob_dist)
-        else:
-            self.utility_parameter_samples = self.utility.parameter_distribution.sample(20)
         X = np.atleast_2d(X)
         marginal_acqX = self._marginal_acq(X, self.utility_parameter_samples)
         if self.use_full_support:
-             acqX = np.matmul(marginal_acqX, self.utility_parameter_distribution)
+             acqX = np.matmul(marginal_acqX, self.utility_prob_dist)
         else:
             acqX = np.sum(marginal_acqX, axis=1)/len(self.utility_parameter_samples)
         acqX = np.reshape(acqX, (X.shape[0],1))
         return acqX
 
-
     def _compute_acq_withGradients(self, X):
         """
         Computes the Expected Improvement and its derivative (has a very easy derivative!)
         """
-        if self.use_full_support:
-            self.utility_parameter_samples = self.utility.parameter_distribution.support
-            self.utility_param_dist = np.atleast_1d(self.utility.parameter_distribution.prob_dist)
-        else:
-            self.utility_parameter_samples = self.utility.parameter_distribution.sample()
         X = np.atleast_2d(X)
-         
         marginal_acqX, marginal_dacq_dX = self._marginal_acq_with_gradient(X, self.utility_parameter_samples)           
         if self.use_full_support:
-             acqX = np.matmul(marginal_acqX, self.utility_param_dist)
-             dacq_dX = np.tensordot(marginal_dacq_dX, self.utility_param_dist, 1)
+             acqX = np.matmul(marginal_acqX, self.utility_prob_dist)
+             dacq_dX = np.tensordot(marginal_dacq_dX, self.utility_prob_dist, 1)
         else:
             acqX = np.sum(marginal_acqX, axis=1)/len(self.utility_parameter_samples)
             dacq_dX = np.sum(marginal_dacq_dX, axis=2)/len(self.utility_parameter_samples)
@@ -77,11 +69,10 @@ class uEI_affine(AcquisitionBase):
         acqX = np.reshape(acqX,(X.shape[0], 1))
         dacq_dX = np.reshape(dacq_dX, X.shape)
         return acqX, dacq_dX
-    
-    
+
     def _marginal_acq(self, X, utility_parameter_samples):
         L = len(utility_parameter_samples)
-        marginal_acqX = np.zeros((X.shape[0],L))
+        marginal_acqX = np.zeros((X.shape[0], L))
         n_h = self.number_of_gp_hyps_samples # Number of GP hyperparameters samples.
         for h in range(n_h):
             self.model.set_hyperparameters(h)
@@ -92,13 +83,11 @@ class uEI_affine(AcquisitionBase):
                 for i in range(X.shape[0]):
                     mu = np.dot(utility_parameter_samples[l], meanX[:,i])
                     sigma = np.sqrt(np.dot(np.square(utility_parameter_samples[l]), varX[:,i]))
-                    #a = (mu-current_best)*norm.cdf((mu-current_best)/sigma) + sigma*norm.pdf((mu-current_best)/sigma)
                     phi, Phi, u = self._get_quantiles(current_best, mu, sigma)
                     marginal_acqX[i,l] += sigma*(u*Phi + phi)               
         marginal_acqX = marginal_acqX/n_h
         return marginal_acqX
-    
-    
+
     def _marginal_acq_with_gradient(self, X, utility_parameter_samples):
         L = len(utility_parameter_samples)
         marginal_acqX = np.zeros((X.shape[0],L))
@@ -125,8 +114,7 @@ class uEI_affine(AcquisitionBase):
         marginal_acqX = marginal_acqX/n_h          
         marginal_dacq_dX = marginal_dacq_dX/n_h
         return marginal_acqX, marginal_dacq_dX
-    
-    
+
     def _marginal_best_so_far(self, utility_parameter_samples):
         L = len(utility_parameter_samples)
         marginal_best = np.empty(L)
@@ -136,15 +124,6 @@ class uEI_affine(AcquisitionBase):
             
         return marginal_best
                     
-            
-    def _get_utility_parameters_samples(self, n_samples=None):
-        if n_samples == None:
-            samples = self.utility.parameter_distribution.support
-        else:
-            samples = self.utility.parameter_distribution.sample(n_samples)      
-        return samples       
-        
-    
     def _get_quantiles(self, fmax, m, s):
         '''
         Quantiles of the Gaussian distribution useful to determine the acquisition function values
@@ -161,3 +140,11 @@ class uEI_affine(AcquisitionBase):
         phi = np.exp(-0.5 * u**2) / np.sqrt(2*np.pi)
         Phi = 0.5 * erfc(-u / np.sqrt(2))
         return (phi, Phi, u)
+    
+    def update_samples(self):
+        print('Update utility parameter samples')
+        if self.use_full_support:
+            self.utility_parameter_samples = self.utility.parameter_distribution.support
+            self.utility_prob_dist = self.utility.parameter_distribution.prob_dist
+        else:
+            self.utility_parameter_samples = self.utility.sample_parameter(10)

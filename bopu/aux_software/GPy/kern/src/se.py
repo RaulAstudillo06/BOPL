@@ -87,7 +87,7 @@ class SE(Kern):
         if self.ARD:
             if X2 is not None:
                 X2 = X2/self.lengthscale
-            return self._unscaled_dist(X/self.lengthscale, X2)
+            return self._unscaled_squared_dist(X/self.lengthscale, X2)
         else:
             return self._unscaled_squared_dist(X, X2)/(self.lengthscale**2)
     

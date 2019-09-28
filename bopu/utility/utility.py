@@ -20,6 +20,7 @@ class Utility(object):
         self.parameter_distribution = parameter_distribution
         self.expectation = expectation
         self.affine = affine
+        self.counter = 0
     
     def eval_func_and_gradient(self, y, theta):
         """

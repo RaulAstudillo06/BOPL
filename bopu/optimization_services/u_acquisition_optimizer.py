@@ -78,15 +78,12 @@ class U_AcquisitionOptimizer(object):
         ## --- Baseline points
         X_baseline = []
         if self.full_parameter_support:
-            utility_param_support = self.utility.parameter_distribution.support
-            for i in range(len(utility_param_support)):
-                marginal_argmax = self._current_marginal_argmax(utility_param_support[i])
-                X_baseline.append(marginal_argmax[0, :])
+            utility_parameter_samples = self.utility.parameter_distribution.support
         else:
-            utility_param_samples = self.utility.parameter_distribution.sample(self.number_of_utility_parameter_samples)
-            for i in range(len(utility_param_samples)):
-                marginal_argmax = self._current_marginal_argmax(utility_param_samples[i])
-                X_baseline.append(marginal_argmax[0, :])
+            utility_parameter_samples = self.utility.parameter_distribution.sample(self.number_of_utility_parameter_samples)
+        for i in range(len(utility_parameter_samples)):
+            marginal_argmax = self._current_marginal_argmax(utility_parameter_samples[i])
+            X_baseline.append(marginal_argmax[0, :])
         X_baseline = np.atleast_2d(X_baseline)
         fX_baseline = f(X_baseline)[:, 0]
            
