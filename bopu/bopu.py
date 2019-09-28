@@ -320,7 +320,7 @@ class BOPU(object):
                     self.model.set_hyperparameters(h)
                     mean, var = self.model.predict_noiseless(X)
                     for i in range(X.shape[0]):
-                        func_val[i,0] += self.expectation_utility.func(parameter, mean[:,i], var[:,i])
+                        func_val[i,0] += self.expectation_utility.func(mean[:,i], var[:,i], parameter)
                 return -func_val
 
             def val_func_with_gradient(X):
@@ -334,8 +334,8 @@ class BOPU(object):
                     dvar_dX = self.model.posterior_variance_gradient(X)
                     aux = np.concatenate((dmean_dX,dvar_dX))
                     for i in range(X.shape[0]):
-                        func_val[i,0] += self.expectation_utility.func(parameter, mean[:,i], var[:,i])
-                        func_gradient[i, :] += np.matmul(self.expectation_utility.gradient(parameter,mean[:,i],var[:,i]),aux[:,i])
+                        func_val[i,0] += self.expectation_utility.func(mean[:,i], var[:,i], parameter)
+                        func_gradient[i, :] += np.matmul(self.expectation_utility.gradient(mean[:,i], var[:,i], parameter), aux[:,i])
                 return -func_val, -func_gradient
 
         else:

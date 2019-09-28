@@ -30,12 +30,12 @@ class uEI(AcquisitionBase):
         self.n_attributes = self.model.output_dim
         self.W_samples = np.random.normal(size=(25, self.n_attributes))
         self.n_hyps_samples = min(10, self.model.number_of_hyps_samples())
-        self.use_full_support = self.utility.parameter_dist.use_full_support  # If true, the full support of the utility function distribution will be used when computing the acquisition function value.
+        self.use_full_support = self.utility.parameter_distribution.use_full_support  # If true, the full support of the utility function distribution will be used when computing the acquisition function value.
         if self.use_full_support:
-            self.utility_params_samples = self.utility.parameter_dist.support
-            self.utility_prob_dist = np.atleast_1d(self.utility.parameter_dist.prob_dist)
+            self.utility_params_samples = self.utility.parameter_distribution.support
+            self.utility_prob_dist = np.atleast_1d(self.utility.parameter_distribution.prob_dist)
         else:
-            self.utility_params_samples = self.utility.parameter_dist.sample(10)
+            self.utility_params_samples = self.utility.parameter_distribution.sample(10)
 
     def _compute_acq(self, X, parallel=True):
         """
@@ -121,9 +121,9 @@ class uEI(AcquisitionBase):
         X = np.atleast_2d(X)
         # Compute marginal aquisition function and its gradient for every value of the utility function's parameters samples
         if self.use_full_support:
-            utility_params_samples2 = self.utility.parameter_dist.support
+            utility_params_samples2 = self.utility.parameter_distribution.support
         else:
-            utility_params_samples2 = self.utility.parameter_dist.sample(1)
+            utility_params_samples2 = self.utility.parameter_distribution.sample(1)
         marginal_acqX, marginal_dacq_dX = self._marginal_acq_with_gradient(X, utility_params_samples2)
         if self.use_full_support:
             acqX = np.matmul(marginal_acqX, self.utility_prob_dist)

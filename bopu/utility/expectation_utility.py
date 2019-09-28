@@ -4,7 +4,6 @@ import numpy as np
 
 class ExpectationUtility(object):
     """
-
     """
 
     def __init__(self, func, gradient):
@@ -16,7 +15,7 @@ class ExpectationUtility(object):
         Samples random parameter from parameter distribution and evaluates the utility function and its gradient at y given this parameter.
         """
         EU = self.eval_func(mean, var, theta)
-        dEU = self._eval_gradient(mean, var, theta)
+        dEU = self.eval_gradient(mean, var, theta)
         return U, dU
     
     
