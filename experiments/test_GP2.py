@@ -143,7 +143,7 @@ if __name__ == '__main__':
             return utility_func(y, true_underlying_utility_parameter)
 
         bopu = BOPU(model, space, objective, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=2, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
 
     else:
         for i in range(1):
@@ -158,4 +158,4 @@ if __name__ == '__main__':
                 return utility_func(y, true_underlying_utility_parameter)
 
             bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=2, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)

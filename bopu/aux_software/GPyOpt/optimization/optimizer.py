@@ -28,11 +28,11 @@ class OptSGD(Optimizer):
     '''
     (Stochastic) gradient descent algorithm.
     '''
-    def __init__(self, bounds, maxiter=50):
+    def __init__(self, bounds, maxiter=200):
         super(OptSGD, self).__init__(bounds)
         self.maxiter = maxiter
 
-    def optimize(self, x0, f=None, df=None, f_df=None, verbose=False):
+    def optimize(self, x0, f=None, df=None, f_df=None, verbose=False, maxfevals=200):
         """
         :param x0: initial point for a local optimizer.
         :param f: function to optimize.

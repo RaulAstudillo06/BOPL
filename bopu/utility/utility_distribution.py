@@ -63,30 +63,31 @@ class UtilityDistribution(object):
             parameter_samples = self.support[indices, :]
         return parameter_samples
 
-    def add_preference_information(self, underlying_true_utility_func, Y):
+    def add_preference_information(self, underlying_true_utility_func, Y, number_of_pairwise_comparisons=1):
         if self.elicitation_strategy is not None:
-            suggested_pair = self.elicitation_strategy(Y=Y)
-            u1 = underlying_true_utility_func(suggested_pair[0])
-            u2 = underlying_true_utility_func(suggested_pair[1])
-            pref = preference_encoder(u1, u2)
-            if self.support is not None:
-                feasible_indices = []
-                for index in range(len(self.support)):
-                    parameter = self.support[index]
-                    u1_aux = self.utility_func(suggested_pair[0], parameter)
-                    u2_aux = self.utility_func(suggested_pair[1], parameter)
-                    pref_aux = preference_encoder(u1_aux, u2_aux)
-                    if pref_aux == pref:
-                        feasible_indices.append(index)
-                self.support = self.support[feasible_indices]
-                self.prob_dist = self.prob_dist[feasible_indices]
-                self.prob_dist /= np.sum(self.prob_dist)
-                print('New support and posterior probability distribution.')
-                print(suggested_pair)
-                print(self.support)
-                print(self.prob_dist)
-            suggested_pair.append(pref)
-            self.preference_information.append(suggested_pair)
+            for i in range(number_of_pairwise_comparisons):
+                suggested_pair = self.elicitation_strategy(Y=Y)
+                u1 = underlying_true_utility_func(suggested_pair[0])
+                u2 = underlying_true_utility_func(suggested_pair[1])
+                pref = preference_encoder(u1, u2)
+                if self.support is not None:
+                    feasible_indices = []
+                    for index in range(len(self.support)):
+                        parameter = self.support[index]
+                        u1_aux = self.utility_func(suggested_pair[0], parameter)
+                        u2_aux = self.utility_func(suggested_pair[1], parameter)
+                        pref_aux = preference_encoder(u1_aux, u2_aux)
+                        if pref_aux == pref:
+                            feasible_indices.append(index)
+                    self.support = self.support[feasible_indices]
+                    self.prob_dist = self.prob_dist[feasible_indices]
+                    self.prob_dist /= np.sum(self.prob_dist)
+                    print('New support and posterior probability distribution.')
+                    print(suggested_pair)
+                    print(self.support)
+                    print(self.prob_dist)
+                suggested_pair.append(pref)
+                self.preference_information.append(suggested_pair)
             print(self.preference_information)
 
 

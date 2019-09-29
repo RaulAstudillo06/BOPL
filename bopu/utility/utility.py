@@ -45,5 +45,5 @@ class Utility(object):
     def sample_parameter(self, number_of_samples=1):
         return self.parameter_distribution.sample(number_of_samples)
 
-    def update_parameter_distribution(self, underlying_true_utility_func, Y):
-        self.parameter_distribution.add_preference_information(underlying_true_utility_func, Y)
+    def update_parameter_distribution(self, underlying_true_utility_func, Y, number_of_pairwise_comparisons=1):
+        self.parameter_distribution.add_preference_information(underlying_true_utility_func, Y, number_of_pairwise_comparisons)
