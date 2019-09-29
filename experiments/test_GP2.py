@@ -1,6 +1,6 @@
 if __name__ == '__main__':
     import sys
-    sys.path.append('/home/raul/Projects/BOPU/bopu')
+    sys.path.append('/home/ra598/Raul/Projects/BOPU/bopu')
     import numpy as np
     import scipy
     import aux_software.GPyOpt as GPyOpt
@@ -142,9 +142,8 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, objective, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
-
     else:
         for i in range(1):
             experiment_number = str(i)
