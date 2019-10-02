@@ -1,8 +1,9 @@
 if __name__ == '__main__':
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     import sys
-    sys.path.append('/home/ra598/Raul/Projects/BOPU/bopu')
+    sys.path.append(script_dir[:-11] + 'bopu')
     import numpy as np
-    import scipy
     import aux_software.GPyOpt as GPyOpt
     import aux_software.GPy as GPy
     from core import Attributes
@@ -16,7 +17,6 @@ if __name__ == '__main__':
     from utility.elicitation_strategies import random_preference_elicitation
     from bopu import BOPU
     from optimization_services import U_AcquisitionOptimizer
-    import scipy.optimize as optimize
 
     # Function to optimize
     d = 4
