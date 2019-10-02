@@ -153,15 +153,12 @@ class GPModel(BOModel):
         """
         """
         return self.n_samples
-    
-    
+
     def set_hyperparameters(self, i):
         self.current_model = self.model_instances[i]
-            
-            
+
     def get_copy_of_model_sample(self):
         return deepcopy(self.model_instances[0])
-     
                 
     def predict(self, X, full_cov=False):
         """
@@ -173,8 +170,7 @@ class GPModel(BOModel):
         if not full_cov:
             v = np.clip(v, 1e-10, np.inf)
         return m, v
-    
-    
+
     def predict_noiseless(self, X, full_cov=False):
         """
         Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given.
@@ -195,8 +191,7 @@ class GPModel(BOModel):
         m, cov = self.predict_noiseless(X, full_cov=True)
         chol_cov = jitchol(cov)
         return m, chol_cov
-    
-    
+
     def posterior_mean(self, X):
         """
         Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given.
@@ -211,7 +206,6 @@ class GPModel(BOModel):
         if X.ndim==1: X = X[None,:]
         v = np.clip(self.current_model.posterior_variance(X), 1e-10, np.inf)
         return v
-    
     
     def posterior_variance_noiseless(self, X):
         """

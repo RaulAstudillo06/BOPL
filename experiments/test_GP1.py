@@ -11,6 +11,7 @@ if __name__ == '__main__':
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_affine
+    from sampling_policies import uTS
     from utility import UtilityDistribution
     from utility import Utility
     from utility import ExpectationUtility
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'uTS'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
@@ -98,9 +99,8 @@ if __name__ == '__main__':
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
-    elif sampling_policy_name is 'TS':
-        sampling_policy = TS(model, optimization_space, optimizer='CMA', scenario_distribution=scenario_distribution,
-                             utility=utility, expectation_utility=expectation_utility)
+    elif sampling_policy_name is 'uTS':
+        sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
         acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)

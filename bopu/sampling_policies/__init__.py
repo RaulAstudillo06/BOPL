@@ -1,3 +1,3 @@
 from .Random import Random
-#from .TS import TS
+from .uTS import uTS
 from .AcquisitionFunction import AcquisitionFunction

@@ -62,10 +62,10 @@ class MultiOutputGP(object):
         Updates the model with new observations.
         """
         for j in range(self.output_dim):
-            self.output[j].updateModel(X_all,Y_all[j],None,None)
+            self.output[j].updateModel(X_all, Y_all[j], None, None)
 
     def updateModel_single_output(self, index):
-        self.output[index].updateModel(self.X_all[index],self.Y_all[index],None,None)
+        self.output[index].updateModel(self.X_all[index], self.Y_all[index],None,None)
 
     def number_of_hyps_samples(self):
         return self.n_samples
@@ -100,8 +100,8 @@ class MultiOutputGP(object):
         cov = np.empty((self.output_dim,X.shape[0]))
         for j in range(self.output_dim):
             tmp1, tmp2= self.output[j].predict(X,full_cov)
-            m[j,:] = tmp1[:,0]
-            cov[j,:] = tmp2[:,0]
+            m[j, :] = tmp1[:, 0]
+            cov[j, :] = tmp2[:, 0]
         return m, cov
     
     def predict_noiseless(self,  X,  full_cov=False):
@@ -112,9 +112,9 @@ class MultiOutputGP(object):
         m = np.empty((self.output_dim,X.shape[0]))
         cov = np.empty((self.output_dim,X.shape[0]))
         for j in range(self.output_dim):
-            tmp1, tmp2= self.output[j].predict_noiseless(X,full_cov)
-            m[j,:] = tmp1[:,0]
-            cov[j,:] = tmp2[:,0]
+            tmp1, tmp2 = self.output[j].predict_noiseless(X, full_cov)
+            m[j, :] = tmp1[:, 0]
+            cov[j, :] = tmp2[:, 0]
         return m, cov
 
     def posterior_mean(self,  X):
@@ -124,7 +124,7 @@ class MultiOutputGP(object):
         #X = np.atleast_2d(X)
         m = np.empty((self.output_dim,X.shape[0]))
         for j in range(self.output_dim):
-          m[j,:]  = self.output[j].posterior_mean(X)[:,0]
+          m[j, :] = self.output[j].posterior_mean(X)[:,0]
         return m
 
     def posterior_mean_at_evaluated_points(self):
@@ -186,7 +186,7 @@ class MultiOutputGP(object):
         """
         var = np.empty((self.output_dim,X.shape[0]))
         for j in range(self.output_dim):
-            var[j,:] = self.output[j].posterior_variance_conditioned_on_next_point(X)[:,0]
+            var[j, :] = self.output[j].posterior_variance_conditioned_on_next_point(X)[:,0]
         return var
 
     def posterior_variance_gradient_conditioned_on_next_point(self, X):
@@ -208,7 +208,7 @@ class MultiOutputGP(object):
         """
         cov = np.empty((self.output_dim,X1.shape[0],X2.shape[0]))
         for j in range(0,self.output_dim):
-            cov[j,:,:] = self.output[j].posterior_covariance_between_points(X1, X2)
+            cov[j, :, :] = self.output[j].posterior_covariance_between_points(X1, X2)
         return cov
     
     def posterior_covariance_between_points_partially_precomputed(self, X1, X2):
@@ -222,7 +222,7 @@ class MultiOutputGP(object):
         """
         cov = np.empty((self.output_dim,X1.shape[0],X2.shape[0]))
         for j in range(0,self.output_dim):
-            cov[j,:,:] = self.output[j].posterior_covariance_between_points_partially_precomputed(X1, X2)
+            cov[j, :, :] = self.output[j].posterior_covariance_between_points_partially_precomputed(X1, X2)
         return cov
     
     def posterior_mean_gradient(self,  X):
@@ -233,7 +233,7 @@ class MultiOutputGP(object):
         dmu_dX = np.empty((self.output_dim,X.shape[0],X.shape[1]))
         for j in range(0,self.output_dim):
             tmp = self.output[j].posterior_mean_gradient(X)
-            dmu_dX[j,:,:] = tmp
+            dmu_dX[j, :, :] = tmp
 
         return dmu_dX
 
@@ -248,7 +248,6 @@ class MultiOutputGP(object):
             
         return dvar_dX
     
-    
     def posterior_covariance_gradient(self, X, x2):
         """
         Computes dK/dX(X,x2).
@@ -259,8 +258,7 @@ class MultiOutputGP(object):
         for j in range(0,self.output_dim):
             dK_dX[j,:,:] = self.output[j].posterior_covariance_gradient(X, x2)
         return dK_dX
-    
-    
+
     def posterior_covariance_gradient_partially_precomputed(self, X, x2):
         """
         Computes dK/dX(X,x2).
@@ -277,7 +275,7 @@ class MultiOutputGP(object):
         Returns a 2D numpy array with the parameters of the model
         """
         model_parameters = [None]*self.output_dim
-        for j in range(0,self.output_dim):
+        for j in range(self.output_dim):
             model_parameters[j] = self.output[j].get_model_parameters()
 
     def get_model_parameters_names(self):
@@ -285,8 +283,14 @@ class MultiOutputGP(object):
         Returns a list with the names of the parameters of the model
         """
         model_parameters_names = [None]*self.output_dim
-        for j in range(0,self.output_dim):
+        for j in range(self.output_dim):
             model_parameters_names[j] = self.output[j].get_model_parameters_names()
+
+    def get_copy_of_model_sample(self):
+        copy_of_model_sample = []
+        for j in range(self.output_dim):
+            copy_of_model_sample.append(self.output[j].get_copy_of_model_sample())
+        return copy_of_model_sample
 
 
 class MultiOutputGP_FixedHyps(object):
@@ -318,7 +322,7 @@ class MultiOutputGP_FixedHyps(object):
             self.noise_var = noise_var
 
         if ARD is None:
-            self.ARD = [False] * output_dim
+            self.ARD = [True] * output_dim
         else:
             self.ARD = ARD
 
@@ -327,41 +331,6 @@ class MultiOutputGP_FixedHyps(object):
         self.output = [None] * output_dim
         for j in range(output_dim):
             self.output[j] = GPyOpt.models.GPModelFixedHyps(kernel=self.kernel[j], noise_var=self.noise_var[j], ARD=self.ARD[j], kernel_hyps=self.kernel_hyps[j])
-
-    # @staticmethod
-    # def fromConfig(config):
-    # return multi_outputGP(**config)
-
-    def updateModel2(self, X_all, Y_all):
-        """
-        Updates the model with new observations.
-        """
-        self.Y_all = Y_all
-        for j in range(self.output_dim):
-            self.X_all[j] = np.copy(X_all)
-        jobs = []
-        for j in range(self.output_dim):
-            p = Process(target=self.updateModel_single_output, args=(j,))
-            jobs.append(p)
-            p.start()
-        for proc in jobs:
-            proc.join()
-
-        print(self.output[0].predict(X_all[0]))
-
-    def updateModel3(self, X_all, Y_all):
-        """
-        Updates the model with new observations.
-        """
-        self.Y_all = Y_all
-        for j in range(self.output_dim):
-            self.X_all[j] = np.copy(X_all)
-        pool = Pool(4)
-        print(list(range(self.output_dim)))
-        pool.starmap(self.updateModel_single_output, [(0,), (1,)])
-        # pool.close()
-        # pool.join()
-        # print('finished!')
 
     def updateModel(self, X_all, Y_all):
         """

@@ -1,3 +1,4 @@
+from aux_software.GPyOpt.experiment_design import initial_design
 from aux_software.GPyOpt.optimization.optimizer import apply_optimizer, choose_optimizer, apply_optimizer_inner
 from aux_software.GPyOpt.optimization.anchor_points_generator import ObjectiveAnchorPointsGenerator, ThompsonSamplingAnchorPointsGenerator
 from pathos.multiprocessing import ProcessingPool as Pool
@@ -169,6 +170,8 @@ class U_AcquisitionOptimizer(object):
                         dval_dX += np.tensordot(parameter, dmu_dX, axes=1)
                     return -valX, -dval_dX
 
+            argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
+
         elif self.expectation_utility is not None:
             def val_func(X):
                 X = np.atleast_2d(X)
@@ -177,7 +180,7 @@ class U_AcquisitionOptimizer(object):
                     self.model.set_hyperparameters(h)
                     mean, var = self.model.predict_noiseless(X)
                     for i in range(X.shape[0]):
-                        func_val[i,0] += self.expectation_utility.func(parameter, mean[:,i], var[:,i])
+                        func_val[i,0] += self.expectation_utility.func(parameter, mean[:, i], var[:, i])
                 return -func_val
 
             def val_func_with_gradient(X):
@@ -195,44 +198,13 @@ class U_AcquisitionOptimizer(object):
                         func_gradient[i,:] += np.matmul(self.expectation_utility.gradient(parameter,mean[:,i],var[:,i]),aux[:,i])
                 return -func_val, -func_gradient
 
+            argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
+
         else:
-            Z_samples = np.random.normal(size=(50, self.n_attributes))
-            def val_func(X):
-                X = np.atleast_2d(X)
-                func_val = np.zeros((X.shape[0], 1))
-                for h in range(self.number_of_gp_hyps_samples):
-                    self.model.set_hyperparameters(h)
-                    mean, var = self.model.predict_noiseless(X)
-                    std = np.sqrt(var)
-                    for i in range(X.shape[0]):
-                        for Z in Z_samples:
-                            func_val[i,0] += self.utility.eval_func(parameter,mean[:,i] + np.multiply(std[:,i],Z))
-                return -func_val
+            argmax = initial_design('random', self.space, 1)
 
-            def val_func_with_gradient(X):
-                X = np.atleast_2d(X)
-                func_val = np.zeros((X.shape[0], 1))
-                func_gradient = np.zeros(X.shape)
-                for h in range(self.number_of_gp_hyps_samples):
-                    self.model.set_hyperparameters(h)
-                    mean, var = self.model.predict_noiseless(X)
-                    std = np.sqrt(var)
-                    dmean_dX = self.model.posterior_mean_gradient(X)
-                    dstd_dX = self.model.posterior_variance_gradient(X)
-                    for i in range(X.shape[0]):
-                        for j in range(self.n_attributes):
-                            dstd_dX[j,i,:] /= (2*std[j,i])
-                        for Z in Z_samples:
-                            aux1 = mean[:,i] + np.multiply(Z, std[:,i])
-                            func_val[i,0] += self.utility.eval_func(parameter, aux1)
-                            aux2 = dmean_dX[:,i,:] + np.multiply(dstd_dX[:,i,:].T, Z).T
-                            func_gradient[i,:] += np.matmul(self.utility.eval_gradient(parameter, aux1), aux2)
-                return -func_val, -func_gradient
-
-        argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
         return argmax
-    
-    
+
     def optimize_inner_func(self, f=None, df=None, f_df=None, duplicate_manager=None, n_starting=200, n_anchor=16):
         """
         Optimizes the input function.
@@ -264,8 +236,7 @@ class U_AcquisitionOptimizer(object):
         #x_min = np.atleast_2d(anchor_points[0])
         #fx_min = np.atleast_2d(anchor_points_values[0])       
         return x_min, fx_min
-    
-    
+
     def _parallel_optimization_wrapper(self, x0):
         return apply_optimizer(self.optimizer, x0, self.f, None, self.f_df)
 
