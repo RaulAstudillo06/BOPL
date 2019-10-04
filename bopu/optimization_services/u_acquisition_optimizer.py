@@ -22,7 +22,7 @@ class U_AcquisitionOptimizer(object):
         - 'CMA': covariance matrix adaptation.
     """
 
-    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', n_starting=360, n_anchor=16, **kwargs):
+    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', parallel=False, n_starting=360, n_anchor=16, include_baseline_points=True **kwargs):
 
         self.space = space
         self.model = model
@@ -30,8 +30,10 @@ class U_AcquisitionOptimizer(object):
         self.expectation_utility = expectation_utility
         self.optimizer_name = optimizer
         self.inner_optimizer_name = inner_optimizer
+        self.parallel = parallel
         self.n_starting = n_starting
         self.n_anchor = n_anchor
+        self.include_baseline_points = include_baseline_points
         self.number_of_utility_parameter_samples = 10
         self.full_parameter_support = self.utility.parameter_distribution.use_full_support
         self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
@@ -75,51 +77,41 @@ class U_AcquisitionOptimizer(object):
             anchor_points_generator = ObjectiveAnchorPointsGenerator(self.space, random_design_type, f, self.n_starting)
         elif self.type_anchor_points_logic == thompson_sampling_anchor_points_logic:
             anchor_points_generator = ThompsonSamplingAnchorPointsGenerator(self.space, sobol_design_type, self.model)
-
-        ## --- Baseline points
-        X_baseline = []
-        if self.full_parameter_support:
-            utility_parameter_samples = self.utility.parameter_distribution.support
-        else:
-            utility_parameter_samples = self.utility.parameter_distribution.sample(self.number_of_utility_parameter_samples)
-        for i in range(len(utility_parameter_samples)):
-            marginal_argmax = self._current_marginal_argmax(utility_parameter_samples[i])
-            X_baseline.append(marginal_argmax[0, :])
-        X_baseline = np.atleast_2d(X_baseline)
-        fX_baseline = f(X_baseline)[:, 0]
            
         # Select the anchor points (with context)
         anchor_points, anchor_points_values = anchor_points_generator.get(num_anchor=self.n_anchor, duplicate_manager=duplicate_manager, context_manager=self.context_manager, get_scores=True)
-        anchor_points = np.vstack((anchor_points, X_baseline))
-        anchor_points_values = np.concatenate((anchor_points_values, fX_baseline))
+        # Baseline points
+        if self.include_baseline_points:
+            X_baseline = []
+            if self.full_parameter_support:
+                utility_parameter_samples = self.utility.parameter_distribution.support
+            else:
+                utility_parameter_samples = self.utility.parameter_distribution.sample(
+                    self.number_of_utility_parameter_samples)
+            for i in range(len(utility_parameter_samples)):
+                marginal_argmax = self._current_marginal_argmax(utility_parameter_samples[i])
+                X_baseline.append(marginal_argmax[0, :])
+            X_baseline = np.atleast_2d(X_baseline)
+            fX_baseline = f(X_baseline)[:, 0]
+            anchor_points = np.vstack((anchor_points, X_baseline))
+            anchor_points_values = np.concatenate((anchor_points_values, fX_baseline))
         print('Anchor points:')
         print(anchor_points)
+        print('Anchor points values:')
         print(anchor_points_values)
-        parallel = False
-        if parallel:
+
+        if self.parallel:
             pool = Pool(4)
             optimized_points = pool.map(self._parallel_optimization_wrapper, anchor_points)
-            print('optimized points parallel')
+            print('optimized points (parallel):')
             print(optimized_points)
         else:
             optimized_points = [apply_optimizer(self.optimizer, a, f=f, df=None, f_df=f_df, duplicate_manager=duplicate_manager, context_manager=self.context_manager, space = self.space) for a in anchor_points]                 
-            print('Optimized points:')
+            print('Optimized points (sequential):')
             print(optimized_points)                
         x_min, fx_min = min(optimized_points, key=lambda t:t[1])
-        print('Baseline points:')
-        print(X_baseline)
-        print(fX_baseline)
-        for i in range(X_baseline.shape[0]):
-            if fX_baseline[i] < fx_min:
-                print('Baseline was best found.')
-                x_min = X_baseline[i]
-                fx_min = fX_baseline[i]
-                print(fx_min)
-                print(x_min)
-                
-        x_min = np.atleast_2d(x_min)
+        print('Acquisition value of selected point: {}'.format(np.squeeze(fx_min)))
         return x_min, fx_min
-    
     
     def _current_marginal_argmax(self, parameter):
         """
@@ -170,8 +162,6 @@ class U_AcquisitionOptimizer(object):
                         dval_dX += np.tensordot(parameter, dmu_dX, axes=1)
                     return -valX, -dval_dX
 
-            argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
-
         elif self.expectation_utility is not None:
             def val_func(X):
                 X = np.atleast_2d(X)
@@ -198,11 +188,7 @@ class U_AcquisitionOptimizer(object):
                         func_gradient[i,:] += np.matmul(self.expectation_utility.gradient(parameter,mean[:,i],var[:,i]),aux[:,i])
                 return -func_val, -func_gradient
 
-            argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
-
-        else:
-            argmax = initial_design('random', self.space, 1)
-
+        argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
         return argmax
 
     def optimize_inner_func(self, f=None, df=None, f_df=None, duplicate_manager=None, n_starting=200, n_anchor=16):

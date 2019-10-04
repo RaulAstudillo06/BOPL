@@ -27,17 +27,23 @@ class UtilityDistribution(object):
                 self.use_full_support = True
             else:
                 self.use_full_support = False
+
+    def _sample_from_prior(self, number_of_samples=1):
+        parameter_samples = self.prior_sample_generator(number_of_samples)
+        if number_of_samples > 1 and parameter_samples.ndim < 2:
+            number_of_samples = number_of_samples.reshape((number_of_samples, ))
+        return parameter_samples
     
     def sample(self, number_of_samples=1):
         if self.support is None:
             if len(self.preference_information) == 0:
-                parameter_samples = self.prior_sample_generator(number_of_samples)
+                parameter_samples = self._sample_from_prior(number_of_samples)
             else:
                 parameter_samples = []
                 number_of_gathered_samples = 0
                 test_counter = 0
                 while number_of_gathered_samples < number_of_samples:
-                    suggested_sample = self.prior_sample_generator(1)[0]
+                    suggested_sample = self._sample_from_prior(1)[0]
                     test_counter += 1
                     keep_verifying = True
                     counter = 0
@@ -57,7 +63,7 @@ class UtilityDistribution(object):
                         parameter_samples.append(suggested_sample)
                         number_of_gathered_samples += 1
                 parameter_samples = np.atleast_2d(parameter_samples)
-                print('Test counter = {}'.format(test_counter))
+                print('Required parameter samples = {}'.format(test_counter))
         else:
             indices = np.random.choice(int(len(self.support)), size=number_of_samples, p=self.prob_dist)
             parameter_samples = self.support[indices, :]

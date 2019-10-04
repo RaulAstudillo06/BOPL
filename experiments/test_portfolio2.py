@@ -57,7 +57,6 @@ if __name__ == '__main__':
     d = 3
     m = 2
 
-
     def f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding):
         fx = np.empty((m,))
         results = {}
@@ -92,8 +91,41 @@ if __name__ == '__main__':
             fX[:, i] = f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding)
         return fX
 
-
     attributes = Attributes(f, as_list=False, output_dim=m)
+
+    # Function to optimize
+    d = 3
+    m = 2
+    I = np.linspace(0., 1., 10)
+    x, y, z = np.meshgrid(I, I, I)
+    grid = np.array([x.flatten(), y.flatten(), z.flatten()]).T
+    kernel = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3] * d))
+    cov = kernel.K(grid)
+    mean = np.zeros((1000,))
+    r1 = np.random.RandomState(1)
+    Y1 = r1.multivariate_normal(mean, cov)
+    r2 = np.random.RandomState(2)
+    Y2 = r2.multivariate_normal(mean, cov)
+    Y1 = np.reshape(Y1, (1000, 1))
+    Y2 = np.reshape(Y2, (1000, 1))
+    # print(Y1[:5, 0])
+    # print(Y2[:5, 0])
+    model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
+    model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
+
+
+    def f1(X):
+        X_copy = np.atleast_2d(X)
+        return model1.posterior_mean(X_copy)
+
+
+    def f2(X):
+        X_copy = np.atleast_2d(X)
+        return model2.posterior_mean(X_copy)
+
+
+    # noise_var = [0.25,0.25]
+    attributes = Attributes([f1, f2])
 
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
@@ -103,21 +135,29 @@ if __name__ == '__main__':
     # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
 
     # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2)
+    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2*(d+1))
 
     # Utility function
     def utility_func(y, parameter):
         y_aux = np.squeeze(y)
         parameter_aux = np.squeeze(parameter)
-        if parameter_aux < y_aux[1]:
-            val = y_aux[1]
+        if y_aux.ndim > 1:
+            val = np.empty((y_aux.shape[1], ))
+            for i in range(y_aux.shape[1]):
+                if parameter_aux < y_aux[1, i]:
+                    val[i] = y_aux[0, i]
+                else:
+                    val[i] = -np.infty
         else:
-            val = -np.infty
+            if parameter_aux < y_aux[1]:
+                val = y_aux[0]
+            else:
+                val = -np.infty
         return val
 
     def prior_sample_generator(n_samples):
         samples = 8.0 * np.random.rand(n_samples) + 2.0
-        samples = -samples
+        samples = -np.reshape(samples, (n_samples, 1))
         return samples
 
     utility_parameter_distribution = UtilityDistribution(prior_sample_generator=prior_sample_generator, utility_func=utility_func, elicitation_strategy=random_preference_elicitation)
@@ -128,7 +168,7 @@ if __name__ == '__main__':
     sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA')
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_anchor=4)
 
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
@@ -142,19 +182,17 @@ if __name__ == '__main__':
 
     # BO model
     max_iter = 1
-    experiment_name = 'test_portfolio1'
+    experiment_name = 'test_portfolio2'
     if len(sys.argv) > 1:
         experiment_number = str(sys.argv[1])
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
         # True underlying utility
-        true_underlying_utility_parameter = utility.sample_parameter()
+        true_underlying_utility_parameter = utility.sample_parameter()[0]
         print(true_underlying_utility_parameter)
-
 
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
-
 
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design,
                     true_underlying_utility_func=true_underlying_utility_func,

@@ -4,6 +4,7 @@ if __name__ == '__main__':
     import sys
     sys.path.append(script_dir[:-11] + 'bopu')
     import numpy as np
+    import scipy
     import aux_software.GPyOpt as GPyOpt
     import aux_software.GPy as GPy
     from core import Attributes
@@ -55,7 +56,6 @@ if __name__ == '__main__':
 
     # Utility function
     def utility_func(y, parameter):
-
         aux = (y.transpose() - parameter).transpose()
         return -np.sum(np.square(aux), axis=0)
     
