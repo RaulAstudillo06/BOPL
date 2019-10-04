@@ -77,6 +77,7 @@ if __name__ == '__main__':
         results_df['Return'] = [results[k].excess_returns for k in results.keys()]
         for k in results.keys():
             returns = results[k].excess_returns.to_numpy()
+        returns = returns[:-1]
         fx[0] = np.mean(returns)*100*250
         fx[1] = -np.std(returns)*100*np.sqrt(250)
         return fx
@@ -85,47 +86,14 @@ if __name__ == '__main__':
         X = np.atleast_2d(X)
         fX = np.empty((m, X.shape[0]))
         for i in range(X.shape[0]):
-            gamma_risk = 9.0 * X[i, 0] + 1.0
-            gamma_tcost = 2.0 * X[i, 1] + 6.0
-            gamma_holding = 990.0 * X[i, 2] + 10.0
+            gamma_risk = 999.9*X[i,0] + 0.1
+            gamma_tcost = 2.5*X[i,1] + 5.5
+            gamma_holding = 99.9*X[i,2] + 0.1
             fX[:, i] = f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding)
+        print(fX)
         return fX
 
     attributes = Attributes(f, as_list=False, output_dim=m)
-
-    # Function to optimize
-    d = 3
-    m = 2
-    I = np.linspace(0., 1., 10)
-    x, y, z = np.meshgrid(I, I, I)
-    grid = np.array([x.flatten(), y.flatten(), z.flatten()]).T
-    kernel = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3] * d))
-    cov = kernel.K(grid)
-    mean = np.zeros((1000,))
-    r1 = np.random.RandomState(1)
-    Y1 = r1.multivariate_normal(mean, cov)
-    r2 = np.random.RandomState(2)
-    Y2 = r2.multivariate_normal(mean, cov)
-    Y1 = np.reshape(Y1, (1000, 1))
-    Y2 = np.reshape(Y2, (1000, 1))
-    # print(Y1[:5, 0])
-    # print(Y2[:5, 0])
-    model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
-    model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
-
-
-    def f1(X):
-        X_copy = np.atleast_2d(X)
-        return model1.posterior_mean(X_copy)
-
-
-    def f2(X):
-        X_copy = np.atleast_2d(X)
-        return model2.posterior_mean(X_copy)
-
-
-    # noise_var = [0.25,0.25]
-    attributes = Attributes([f1, f2])
 
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
@@ -136,6 +104,8 @@ if __name__ == '__main__':
 
     # Initial design
     initial_design = GPyOpt.experiment_design.initial_design('random', space, 2*(d+1))
+    feasible_point = np.atleast_1d([0.31, 0.27, 1.])
+    initial_design = np.vstack((initial_design, feasible_point))
 
     # Utility function
     def utility_func(y, parameter):
@@ -165,10 +135,10 @@ if __name__ == '__main__':
                       affine=False)
 
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_anchor=4)
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_anchor=4, include_baseline_points=False)
 
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
@@ -181,14 +151,14 @@ if __name__ == '__main__':
         sampling_policy = Random(model, space)
 
     # BO model
-    max_iter = 1
+    max_iter = 100
     experiment_name = 'test_portfolio2'
     if len(sys.argv) > 1:
         experiment_number = str(sys.argv[1])
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
         # True underlying utility
-        true_underlying_utility_parameter = utility.sample_parameter()[0]
+        true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
         print(true_underlying_utility_parameter)
 
         def true_underlying_utility_func(y):
@@ -206,7 +176,7 @@ if __name__ == '__main__':
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
             # True underlying utility
-            true_underlying_utility_parameter = utility.sample_parameter()[0]
+            true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
             print(true_underlying_utility_parameter)
 
             def true_underlying_utility_func(y):
