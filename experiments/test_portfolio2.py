@@ -51,7 +51,7 @@ if __name__ == '__main__':
                                        sigma=sigma_estimate, volume=volume_estimate)
     optimization_hcost = cp.HcostModel(borrow_costs=0.0001)
 
-    risk_data = pd.HDFStore(datadir + 'risk_model4.h5')
+    risk_data = pd.HDFStore(datadir + 'risk_model1.h5')
     risk_model = cp.FactorModelSigma(risk_data.exposures, risk_data.factor_sigma, risk_data.idyos)
 
     d = 3
@@ -135,10 +135,10 @@ if __name__ == '__main__':
                       affine=False)
 
     # --- Sampling policy
-    sampling_policy_name = 'Random'
+    sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_anchor=4, include_baseline_points=False)
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=4, include_baseline_points=False)
 
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
