@@ -1,11 +1,10 @@
 if __name__ == '__main__':
     import os
-
     script_dir = os.path.dirname(os.path.abspath(__file__))
     import sys
-
     sys.path.append(script_dir[:-11] + 'bopu')
     import numpy as np
+    import subprocess
     import aux_software.GPyOpt as GPyOpt
     import aux_software.GPy as GPy
     from core import Attributes
@@ -24,7 +23,7 @@ if __name__ == '__main__':
     import pandas as pd
     import cvxportfolio as cp
 
-    # Function to optimize
+    # Set up requirements for portfolio simulation
     datadir = script_dir + '/portfolio_test_data/'
 
     sigmas = pd.read_csv(datadir + 'sigmas.csv.gz', index_col=0, parse_dates=[0]).iloc[:, :-1]
@@ -51,54 +50,12 @@ if __name__ == '__main__':
                                        sigma=sigma_estimate, volume=volume_estimate)
     optimization_hcost = cp.HcostModel(borrow_costs=0.0001)
 
-    risk_data = pd.HDFStore(datadir + 'risk_model1.h5')
-    risk_model = cp.FactorModelSigma(risk_data.exposures, risk_data.factor_sigma, risk_data.idyos)
-
-    d = 3
-    m = 2
-
-    def f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding):
-        fx = np.empty((m,))
-        results = {}
-        policies = {}
-        policies[(gamma_risk, gamma_tcost, gamma_holding)] = cp.SinglePeriodOpt(return_estimate,
-                                                                                [gamma_risk * risk_model,
-                                                                                 gamma_tcost * optimization_tcost,
-                                                                                 gamma_holding * optimization_hcost],
-                                                                                [cp.LeverageLimit(3)])
-        warnings.filterwarnings('ignore')
-        results.update(dict(zip(policies.keys(),
-                                simulator.run_multiple_backtest(1E8 * w_b, start_time=start_t, end_time=end_t,
-                                                                policies=policies.values(), parallel=True))))
-        results_df = pd.DataFrame()
-        results_df[r'$\gamma^\mathrm{risk}$'] = [el[0] for el in results.keys()]
-        results_df[r'$\gamma^\mathrm{trade}$'] = [el[1] for el in results.keys()]
-        results_df[r'$\gamma^\mathrm{hold}$'] = ['%g' % el[2] for el in results.keys()]
-        results_df['Return'] = [results[k].excess_returns for k in results.keys()]
-        for k in results.keys():
-            returns = results[k].excess_returns.to_numpy()
-        returns = returns[:-1]
-        fx[0] = np.mean(returns)*100*250
-        fx[1] = -np.std(returns)*100*np.sqrt(250)
-        return fx
-
-    def f(X):
-        X = np.atleast_2d(X)
-        fX = np.empty((m, X.shape[0]))
-        for i in range(X.shape[0]):
-            gamma_risk = 999.9*X[i,0] + 0.1
-            gamma_tcost = 2.5*X[i,1] + 5.5
-            gamma_holding = 99.9*X[i,2] + 0.1
-            fX[:, i] = f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding)
-        print(fX)
-        return fX
-
-    attributes = Attributes(f, as_list=False, output_dim=m)
-
     # Space
+    d = 3
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
 
     # Model (Multi-output GP)
+    m = 2
     model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)
     # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
 
@@ -157,6 +114,50 @@ if __name__ == '__main__':
         experiment_number = str(sys.argv[1])
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
+        # Attributes
+        copy_of_risk_model_name = 'risk_model_' + filename[0] + '_' + filename[1] + '_' + filename[2] + '.h5'
+        subprocess.call(['bash', script_dir + '/make_copy_of_risk_model.sh', datadir + 'risk_model.h5', datadir + copy_of_risk_model_name])
+        risk_data = pd.HDFStore(datadir + copy_of_risk_model_name)
+        risk_model = cp.FactorModelSigma(risk_data.exposures, risk_data.factor_sigma, risk_data.idyos)
+
+        def f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding):
+            fx = np.empty((m,))
+            results = {}
+            policies = {}
+            policies[(gamma_risk, gamma_tcost, gamma_holding)] = cp.SinglePeriodOpt(return_estimate,
+                                                                                    [gamma_risk * risk_model,
+                                                                                     gamma_tcost * optimization_tcost,
+                                                                                     gamma_holding * optimization_hcost],
+                                                                                    [cp.LeverageLimit(3)])
+            warnings.filterwarnings('ignore')
+            results.update(dict(zip(policies.keys(),
+                                    simulator.run_multiple_backtest(1E8 * w_b, start_time=start_t, end_time=end_t,
+                                                                    policies=policies.values(), parallel=True))))
+            results_df = pd.DataFrame()
+            results_df[r'$\gamma^\mathrm{risk}$'] = [el[0] for el in results.keys()]
+            results_df[r'$\gamma^\mathrm{trade}$'] = [el[1] for el in results.keys()]
+            results_df[r'$\gamma^\mathrm{hold}$'] = ['%g' % el[2] for el in results.keys()]
+            results_df['Return'] = [results[k].excess_returns for k in results.keys()]
+            for k in results.keys():
+                returns = results[k].excess_returns.to_numpy()
+            returns = returns[:-1]
+            fx[0] = np.mean(returns) * 100 * 250
+            fx[1] = -np.std(returns) * 100 * np.sqrt(250)
+            return fx
+
+        def f(X):
+            X = np.atleast_2d(X)
+            fX = np.empty((m, X.shape[0]))
+            for i in range(X.shape[0]):
+                gamma_risk = 999.9 * X[i, 0] + 0.1
+                gamma_tcost = 2.5 * X[i, 1] + 5.5
+                gamma_holding = 99.9 * X[i, 2] + 0.1
+                fX[:, i] = f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding)
+            print(fX)
+            return fX
+
+        attributes = Attributes(f, as_list=False, output_dim=m)
+
         # True underlying utility
         true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
         print(true_underlying_utility_parameter)
@@ -170,10 +171,56 @@ if __name__ == '__main__':
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
                               compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+        subprocess.call(['bash', script_dir + '/delete_copy_of_risk_model.sh', datadir + copy_of_risk_model_name])
     else:
         for i in range(1):
             experiment_number = str(i)
             filename = [experiment_name, sampling_policy_name, experiment_number]
+
+            # Attributes
+            copy_of_risk_model_name = 'risk_model_' + filename[0] + '_' + filename[1] + '_' + filename[2] + '.h5'
+            subprocess.call(['bash', script_dir + '/make_copy_of_risk_model.sh', datadir + 'risk_model.h5',
+                             datadir + copy_of_risk_model_name])
+            risk_data = pd.HDFStore(datadir + copy_of_risk_model_name)
+            risk_model = cp.FactorModelSigma(risk_data.exposures, risk_data.factor_sigma, risk_data.idyos)
+
+            def f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding):
+                fx = np.empty((m,))
+                results = {}
+                policies = {}
+                policies[(gamma_risk, gamma_tcost, gamma_holding)] = cp.SinglePeriodOpt(return_estimate,
+                                                                                        [gamma_risk * risk_model,
+                                                                                         gamma_tcost * optimization_tcost,
+                                                                                         gamma_holding * optimization_hcost],
+                                                                                        [cp.LeverageLimit(3)])
+                warnings.filterwarnings('ignore')
+                results.update(dict(zip(policies.keys(),
+                                        simulator.run_multiple_backtest(1E8 * w_b, start_time=start_t, end_time=end_t,
+                                                                        policies=policies.values(), parallel=True))))
+                results_df = pd.DataFrame()
+                results_df[r'$\gamma^\mathrm{risk}$'] = [el[0] for el in results.keys()]
+                results_df[r'$\gamma^\mathrm{trade}$'] = [el[1] for el in results.keys()]
+                results_df[r'$\gamma^\mathrm{hold}$'] = ['%g' % el[2] for el in results.keys()]
+                results_df['Return'] = [results[k].excess_returns for k in results.keys()]
+                for k in results.keys():
+                    returns = results[k].excess_returns.to_numpy()
+                returns = returns[:-1]
+                fx[0] = np.mean(returns) * 100 * 250
+                fx[1] = -np.std(returns) * 100 * np.sqrt(250)
+                return fx
+
+            def f(X):
+                X = np.atleast_2d(X)
+                fX = np.empty((m, X.shape[0]))
+                for i in range(X.shape[0]):
+                    gamma_risk = 999.9 * X[i, 0] + 0.1
+                    gamma_tcost = 2.5 * X[i, 1] + 5.5
+                    gamma_holding = 99.9 * X[i, 2] + 0.1
+                    fX[:, i] = f_unnormalized_inputs(gamma_risk, gamma_tcost, gamma_holding)
+                print(fX)
+                return fX
+
+            attributes = Attributes(f, as_list=False, output_dim=m)
 
             # True underlying utility
             true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
@@ -188,3 +235,4 @@ if __name__ == '__main__':
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                                   utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
                                   compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+            subprocess.call(['bash', script_dir + '/delete_copy_of_risk_model.sh', datadir + copy_of_risk_model_name])
