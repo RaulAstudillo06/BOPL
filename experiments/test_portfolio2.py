@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
 
     # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2*(d+1))
+    initial_design = GPyOpt.experiment_design.initial_design('random', space, 1)
     feasible_point = np.atleast_1d([0.31, 0.27, 1.])
     initial_design = np.vstack((initial_design, feasible_point))
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         sampling_policy = Random(model, space)
 
     # BO model
-    max_iter = 100
+    max_iter = 1
     experiment_name = 'test_portfolio2'
     if len(sys.argv) > 1:
         experiment_number = str(sys.argv[1])
@@ -159,7 +159,7 @@ if __name__ == '__main__':
         attributes = Attributes(f, as_list=False, output_dim=m)
 
         # True underlying utility
-        true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
+        true_underlying_utility_parameter = utility.sample_parameter()[0]
         print(true_underlying_utility_parameter)
 
         def true_underlying_utility_func(y):
@@ -223,7 +223,7 @@ if __name__ == '__main__':
             attributes = Attributes(f, as_list=False, output_dim=m)
 
             # True underlying utility
-            true_underlying_utility_parameter = -10. #utility.sample_parameter()[0]
+            true_underlying_utility_parameter = utility.sample_parameter()[0]
             print(true_underlying_utility_parameter)
 
             def true_underlying_utility_func(y):
