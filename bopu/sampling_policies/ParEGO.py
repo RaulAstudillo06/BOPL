@@ -47,7 +47,7 @@ class ParEGO(SamplingPolicyBase):
         self.Y_aux = deepcopy(Y_evaluated)
 
         # Auxiliary Bayesian optimization model to run ParEGO
-        weight = self._sample_posterior_weight_for_chebyshev_scalarization()
+        weight = np.random.dirichlet(np.ones(len(self.Y_aux)))#self._sample_posterior_weight_for_chebyshev_scalarization()
         self.Y_aux = np.reshape(self.Y_aux, (len(model_sample), self.Y_aux[0].shape[0]))
         scalarized_fX = chebyshev_scalarization(self.Y_aux, weight)
         scalarized_fX = np.reshape(scalarized_fX, (len(scalarized_fX), 1))
