@@ -12,6 +12,7 @@ if __name__ == '__main__':
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_affine
     from sampling_policies import uTS
+    from sampling_policies import ParEGO
     from utility import UtilityDistribution
     from utility import Utility
     from utility import ExpectationUtility
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'Random'
+    sampling_policy_name = 'ParEGO'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
@@ -104,6 +105,8 @@ if __name__ == '__main__':
         acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)
+    elif sampling_policy_name is 'ParEGO':
+        sampling_policy = ParEGO(model, space, utility)
 
     # BO model
     max_iter = 100
@@ -119,7 +122,7 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
+        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
@@ -134,6 +137,6 @@ if __name__ == '__main__':
             def true_underlying_utility_func(y):
                 return utility_func(y, true_underlying_utility_parameter)
 
-            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
+            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
 

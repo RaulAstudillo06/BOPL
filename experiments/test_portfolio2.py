@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
 
     # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 1)
+    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2*(d+1))
     feasible_point = np.atleast_1d([0.31, 0.27, 1.])
     initial_design = np.vstack((initial_design, feasible_point))
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                       affine=False)
 
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=4, include_baseline_points=False)
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         sampling_policy = Random(model, space)
 
     # BO model
-    max_iter = 1
+    max_iter = 100
     experiment_name = 'test_portfolio2'
     if len(sys.argv) > 1:
         experiment_number = str(sys.argv[1])

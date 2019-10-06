@@ -110,7 +110,7 @@ class U_AcquisitionOptimizer(object):
             print('Optimized points (sequential):')
             print(optimized_points)                
         x_min, fx_min = min(optimized_points, key=lambda t:t[1])
-        print('Acquisition value of selected point: {}'.format(np.squeeze(fx_min)))
+        print('Acquisition value of selected point: {}'.format(-np.squeeze(fx_min)))
         return x_min, fx_min
     
     def _current_marginal_argmax(self, parameter):

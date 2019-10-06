@@ -20,7 +20,7 @@ class BOPU(object):
     :param Y_init: 2d numpy array containing the initial outputs (one per row) of the model.
     """
 
-    def __init__(self, model, space, attributes, sampling_policy, utility, X_init, Y_init=None, true_underlying_utility_func=None, dynamic_utility_parameter_distribution=False):
+    def __init__(self, model, space, attributes=None, sampling_policy=None, utility=None, X_init=None, Y_init=None, true_underlying_utility_func=None, dynamic_utility_parameter_distribution=False):
         self.model = model
         self.space = space
         self.attributes = attributes
@@ -40,7 +40,7 @@ class BOPU(object):
 
         self.cost = CostModel(None)
         self.expectation_utility = utility.expectation
-        self.n_attributes = self.attributes.get_output_dim()
+        self.n_attributes = self.model.output_dim
         self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
         self.utility_support = utility.parameter_distribution.support
         self.utility_prob_dist = utility.parameter_distribution.prob_dist
@@ -133,7 +133,7 @@ class BOPU(object):
         while (self.max_time > self.cum_time) and (self.num_acquisitions < self.max_iter):
             if (self.num_acquisitions % self.utility_distribution_update_interval) == 0:
                 self._update_utility_distribution()
-            self.suggested_sample = self.compute_next_evaluations()
+            self.suggested_sample = self._compute_next_evaluations()
             self.X = np.vstack((self.X, self.suggested_sample))
 
             # Evaluate *f* in X, augment Y and update cost function (if needed)
@@ -386,13 +386,27 @@ class BOPU(object):
         for j in range(self.n_attributes):
             self.Y[j] = np.vstack((self.Y[j], self.Y_new[j]))
 
-    def compute_next_evaluations(self):
+    def _compute_next_evaluations(self):
         """
         Computes the location of the new evaluation (optimizes the acquisition in the standard case).
         :param pending_zipped_X: matrix of input configurations that are in a pending state (i.e., do not have an evaluation yet).
         :param ignored_zipped_X: matrix of input configurations that the user black-lists, i.e., those configurations will not be suggested again.
         :return:
         """
+        return self.sampling_policy.suggest_sample()
+
+    def suggest_next_point_to_evaluate(self):
+        """
+        Computes the location of the new evaluation (optimizes the acquisition in the standard case).
+        :param pending_zipped_X: matrix of input configurations that are in a pending state (i.e., do not have an evaluation yet).
+        :param ignored_zipped_X: matrix of input configurations that the user black-lists, i.e., those configurations will not be suggested again.
+        :return:
+        """
+        # Initial function evaluation (if necessary)
+        if self.X is not None and self.Y is None:
+            self.Y, cost_values = self.objective.evaluate(self.X)
+        # Update/initialize model
+        self.model.updateModel(self.X, self.Y)
         return self.sampling_policy.suggest_sample()
 
     def _update_model(self):
