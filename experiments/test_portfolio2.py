@@ -225,7 +225,7 @@ if __name__ == '__main__':
             attributes = Attributes(f, as_list=False, output_dim=m)
 
             # True underlying utility
-            random_state = np.random.RandomState(int(sys.argv[1]))
+            random_state = np.random.RandomState(i)
             true_underlying_utility_parameter = 8.0 * random_state.rand(1) + 2.0
             true_underlying_utility_parameter = -np.reshape(true_underlying_utility_parameter, (1, ))
             print(true_underlying_utility_parameter)
