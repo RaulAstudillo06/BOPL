@@ -3,6 +3,7 @@
 import numpy as np
 import time
 import os
+from scipy.spatial.distance import euclidean
 from aux_software.GPyOpt.core.errors import InvalidConfigError
 from aux_software.GPyOpt.core.task.cost import CostModel
 from aux_software.GPyOpt.optimization import GeneralOptimizer
@@ -393,7 +394,21 @@ class BOPU(object):
         :param ignored_zipped_X: matrix of input configurations that the user black-lists, i.e., those configurations will not be suggested again.
         :return:
         """
-        return self.sampling_policy.suggest_sample()
+        suggested_sample = self.sampling_policy.suggest_sample()
+        use_suggested_sample = True
+        i = 0
+        min_distance = np.infty
+        while use_suggested_sample and i < self.X.shape[0]:
+            distance_to_evaluated_point = euclidean(self.X[i, :], suggested_sample)
+            if distance_to_evaluated_point < min_distance:
+                min_distance = distance_to_evaluated_point
+            if distance_to_evaluated_point < 1e-6:
+                use_suggested_sample = False
+            i += 1
+        if not use_suggested_sample:
+            print('Suggested point is to close to previously evaluated point; suggested_point will be perturbed.')
+            suggested_sample = self._perturb(suggested_sample)
+        return suggested_sample
 
     def suggest_next_point_to_evaluate(self):
         """
@@ -432,10 +447,9 @@ class BOPU(object):
 
     def _perturb(self, x):
         perturbed_x = np.copy(x)
-        while np.all(perturbed_x == x):
-            perturbed_x = x + np.random.normal(size=x.shape, scale=1e-2)
+        while euclidean(perturbed_x, x) < 1e-6:
+            perturbed_x = x + np.random.normal(size=x.shape, scale=1e-3)
             perturbed_x = self.space.round_optimum(perturbed_x)
-
         return perturbed_x
 
     def save_evaluations(self, filename):

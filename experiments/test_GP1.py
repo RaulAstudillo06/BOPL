@@ -116,7 +116,11 @@ if __name__ == '__main__':
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
         # True underlying utility
-        true_underlying_utility_parameter = utility.sample_parameter()
+        random_state = np.random.RandomState(int(sys.argv[1]))
+        true_underlying_utility_parameter = np.empty((2, ))
+        alpha = 0.5 * np.pi * random_state.rand(1)
+        true_underlying_utility_parameter[0] = np.cos(alpha)
+        true_underlying_utility_parameter[1] = np.sin(alpha)
         print(true_underlying_utility_parameter)
 
         def true_underlying_utility_func(y):
@@ -130,9 +134,12 @@ if __name__ == '__main__':
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
             # True underlying utility
-            true_underlying_utility_parameter = utility.sample_parameter()[0]
+            random_state = np.random.RandomState(int(sys.argv[1]))
+            true_underlying_utility_parameter = np.empty((2,))
+            alpha = 0.5 * np.pi * random_state.rand(1)
+            true_underlying_utility_parameter[0] = np.cos(alpha)
+            true_underlying_utility_parameter[1] = np.sin(alpha)
             print(true_underlying_utility_parameter)
-            print(np.sum(true_underlying_utility_parameter ** 2))
 
             def true_underlying_utility_func(y):
                 return utility_func(y, true_underlying_utility_parameter)
