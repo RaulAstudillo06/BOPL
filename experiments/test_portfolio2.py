@@ -103,9 +103,10 @@ if __name__ == '__main__':
     elif sampling_policy_name is 'TS':
         sampling_policy = TS(model, optimization_space, optimizer='CMA', scenario_distribution=scenario_distribution,
                              utility=utility, expectation_utility=expectation_utility)
-        acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)
+    elif sampling_policy_name is 'ParEGO':
+        sampling_policy = ParEGO(model, space, utility)
 
     # BO model
     max_iter = 100

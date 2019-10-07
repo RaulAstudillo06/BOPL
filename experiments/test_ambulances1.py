@@ -105,7 +105,6 @@ if __name__ == '__main__':
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
     elif sampling_policy_name is 'uTS':
         sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
-        acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)
     elif sampling_policy_name is 'ParEGO':
@@ -119,7 +118,8 @@ if __name__ == '__main__':
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
         # True underlying utility
-        true_underlying_utility_parameter = np.random.dirichlet(np.ones(m + 1), )
+        random_state = np.random.RandomState(int(sys.argv[1]))
+        true_underlying_utility_parameter = random_state.dirichlet(np.ones(m + 1), )
         true_underlying_utility_parameter = -np.sort(-true_underlying_utility_parameter, axis=0)
         print(true_underlying_utility_parameter)
 
@@ -139,7 +139,8 @@ if __name__ == '__main__':
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
             # True underlying utility
-            true_underlying_utility_parameter = np.random.dirichlet(np.ones(m + 1), )
+            random_state = np.random.RandomState(i)
+            true_underlying_utility_parameter = random_state.dirichlet(np.ones(m + 1), )
             true_underlying_utility_parameter = -np.sort(-true_underlying_utility_parameter, axis=0)
             print(true_underlying_utility_parameter)
 
