@@ -98,7 +98,7 @@ if __name__ == '__main__':
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs',
-                                                       inner_optimizer='lbfgs', parallel=True, n_starting=160, n_anchor=8, include_baseline_points=False)
+                                                       inner_optimizer='lbfgs', parallel=True, n_starting=240, n_anchor=8, include_baseline_points=False)
 
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)

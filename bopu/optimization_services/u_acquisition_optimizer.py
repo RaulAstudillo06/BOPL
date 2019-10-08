@@ -101,7 +101,7 @@ class U_AcquisitionOptimizer(object):
         print(anchor_points_values)
 
         if self.parallel:
-            pool = Pool(8)
+            pool = Pool(4)
             optimized_points = pool.map(self._parallel_optimization_wrapper, anchor_points)
             print('optimized points (parallel):')
             print(optimized_points)
@@ -224,7 +224,7 @@ class U_AcquisitionOptimizer(object):
         return x_min, fx_min
 
     def _parallel_optimization_wrapper(self, x0):
-        return apply_optimizer(self.optimizer, x0, self.f, None, self.f_df)
+        return apply_optimizer(self.optimizer, x0, self.f, None, self.f_df, context_manager=self.context_manager, space=self.space)
 
 
 class ContextManager(object):
