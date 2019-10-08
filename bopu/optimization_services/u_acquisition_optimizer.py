@@ -101,7 +101,7 @@ class U_AcquisitionOptimizer(object):
         print(anchor_points_values)
 
         if self.parallel:
-            pool = Pool(4)
+            pool = Pool(8)
             optimized_points = pool.map(self._parallel_optimization_wrapper, anchor_points)
             print('optimized points (parallel):')
             print(optimized_points)
