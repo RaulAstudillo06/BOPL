@@ -10,6 +10,8 @@ if __name__ == '__main__':
     from core import Attributes
     from core import MultiOutputGP
     from sampling_policies import Random
+    from sampling_policies import uTS
+    from sampling_policies import ParEGO
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_constrained
     from utility import UtilityDistribution
@@ -92,7 +94,7 @@ if __name__ == '__main__':
                       affine=False)
 
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=4, include_baseline_points=False)
@@ -176,7 +178,7 @@ if __name__ == '__main__':
                               compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
         subprocess.call(['bash', script_dir + '/delete_copy_of_risk_model.sh', datadir + copy_of_risk_model_name])
     else:
-        for i in range(36, 38):
+        for i in range(39, 40):
             experiment_number = str(i)
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
