@@ -21,7 +21,7 @@ class BOPU(object):
     :param Y_init: 2d numpy array containing the initial outputs (one per row) of the model.
     """
 
-    def __init__(self, model, space, attributes=None, sampling_policy=None, utility=None, X_init=None, Y_init=None, true_underlying_utility_func=None, dynamic_utility_parameter_distribution=False):
+    def __init__(self, model=None, space=None, attributes=None, sampling_policy=None, utility=None, X_init=None, Y_init=None, true_underlying_utility_func=None, dynamic_utility_parameter_distribution=False):
         self.model = model
         self.space = space
         self.attributes = attributes
@@ -42,7 +42,8 @@ class BOPU(object):
         self.cost = CostModel(None)
         self.expectation_utility = utility.expectation
         self.n_attributes = self.model.output_dim
-        self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
+        if self.model.name is 'multi-output GP':
+            self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
         self.utility_support = utility.parameter_distribution.support
         self.utility_prob_dist = utility.parameter_distribution.prob_dist
         self.full_utility_support = self.utility.parameter_distribution.use_full_support
@@ -100,62 +101,49 @@ class BOPU(object):
         self.utility_distribution_update_interval = utility_distribution_update_interval
 
         # Setting up stop conditions
-        if (max_iter is None) and (max_time is None):
-            self.max_iter = 0
-            self.max_time = np.inf
-        elif (max_iter is None) and (max_time is not None):
-            self.max_iter = np.inf
-            self.max_time = max_time
-        elif (max_iter is not None) and (max_time is None):
-            self.max_iter = max_iter
-            self.max_time = np.inf
-        else:
-            self.max_iter = max_iter
-            self.max_time = max_time
+        self.max_iter = max_iter
+        self.max_time = max_time
 
         # Initial function evaluation
         if self.X is not None and self.Y is None:
             self.Y, cost_values = self.attributes.evaluate(self.X)
             if self.cost.cost_type == 'evaluation_time':
                 self.cost.update_cost_model(self.X, cost_values)
-        # Initialize model
-        self.model.updateModel(self.X, self.Y)
-        self.model.get_model_parameters_names()
-        self.model.get_model_parameters()
 
         # Initialize iterations and running time
         self.time_zero = time.time()
         self.num_acquisitions = 0
         self.cum_time = 0
-        self.suggested_sample = self.X
-        self.Y_new = self.Y
+
+        # Initialize model
+        self.update_model()
 
         # Initialize time cost of the evaluations
         while (self.max_time > self.cum_time) and (self.num_acquisitions < self.max_iter):
             if (self.num_acquisitions % self.utility_distribution_update_interval) == 0:
-                self._update_utility_distribution()
-            self.suggested_sample = self._compute_next_evaluations()
-            self.X = np.vstack((self.X, self.suggested_sample))
+                self.update_utility_distribution()
 
-            # Evaluate *f* in X, augment Y and update cost function (if needed)
             print('Experiment: ' + filename[0])
             print('Sampling policy: ' + filename[1])
             print('Replication id: ' + filename[2])
             print('Acquisition number: {}'.format(self.num_acquisitions + 1))
+            self.suggested_sample = self._compute_next_evaluations()
+            print('Suggested point to evaluate: {}'.format(self.suggested_sample))
             self.evaluate_objective()
+            self.X = np.vstack((self.X, self.suggested_sample))
             if filename is not None:
                 self.save_evaluations(filename)
 
-            # Update model
-            self._update_model()
-            self.model.get_model_parameters_names()
-            self.model.get_model_parameters()
+            self.update_model()  # Update model
+
+            # Compute_performance_results and save them
             if self.true_underlying_utility_func is not None:
-                self._compute_current_underlying_max_value()
+                self.compute_current_underlying_max_value()
             if self.compute_integrated_optimal_values:
-                self._compute_current_integrated_max_value()
+                self.compute_current_integrated_max_value()
             if filename is not None:
-                self._save_results(filename)
+                self.save_results(filename)
+
             # Update current evaluation time and function evaluations
             self.cum_time = time.time() - self.time_zero
             self.num_acquisitions += 1
@@ -212,7 +200,7 @@ class BOPU(object):
                     directory = results_folder_name + '/' + results_filename + '.txt'
                     np.savetxt(directory, self.true_integrated_optimal_value)
 
-    def _compute_current_underlying_max_value(self):
+    def compute_current_underlying_max_value(self):
         """
         """
         if self.true_underlying_utility_func is not None:
@@ -232,7 +220,7 @@ class BOPU(object):
         else:
             print('True underlying utility function has not been provided.')
 
-    def _compute_current_integrated_max_value(self):
+    def compute_current_integrated_max_value(self):
         """
         Computes E_n[U(f(x_max))|f], where U is the utility function, f is the true underlying ojective function and x_max = argmax E_n[U(f(x))|U]. See
         function _marginal_max_value_so_far below.
@@ -248,9 +236,9 @@ class BOPU(object):
                         if marginal_opt_val < self.utility.eval_func(y_i, self.utility_support[l]):
                             marginal_argmax = self.X[i, :]
                             marginal_opt_val = self.utility.eval_func(y_i, self.utility_support[l])
-                    #self.current_expected_marginal_best_point[l] = self._current_marginal_argmax(self.utility_support[l])
+                    #self.current_expected_marginal_best_point[l] = self.current_marginal_argmax(self.utility_support[l])
                 else:
-                    marginal_argmax = self._current_marginal_argmax(self.utility_support[l])
+                    marginal_argmax = self.current_marginal_argmax(self.utility_support[l])
                     #self.current_expected_marginal_best_point[l] = marginal_argmax
                     f_at_marginal_max = np.reshape(self.attributes.evaluate(marginal_argmax)[0], (self.n_attributes,))
                     marginal_opt_val = self.utility.eval_func(f_at_marginal_max, self.utility_support[l])
@@ -259,12 +247,12 @@ class BOPU(object):
             print('Current integrated optimal value: {}'.format(val))
             self.historical_integrated_optimal_values.append(val)
 
-    def _current_marginal_max_value(self, parameter):
-        marginal_argmax = self._current_marginal_argmax(parameter)
+    def current_marginal_max_value(self, parameter):
+        marginal_argmax = self.current_marginal_argmax(parameter)
         marginal_max_val = np.reshape(self.attributes.evaluate(marginal_argmax)[0], (self.attributes.output_dim,))
         return self.utility.eval_func(marginal_max_val, parameter)
 
-    def _current_marginal_argmax(self, parameter):
+    def current_marginal_argmax(self, parameter):
         """
         Computes argmax E_n[U(f(x))|U] (The abuse of notation can be misleading; note that the expectation is with
         respect to the posterior distribution on f after n evaluations)
@@ -381,7 +369,6 @@ class BOPU(object):
         """
         Evaluates the objective
         """
-        print('Suggested point to evaluate: {}'.format(self.suggested_sample))
         self.Y_new, cost_new = self.attributes.evaluate_w_noise(self.suggested_sample)
         self.cost.update_cost_model(self.suggested_sample, cost_new)
         for j in range(self.n_attributes):
@@ -402,7 +389,7 @@ class BOPU(object):
             distance_to_evaluated_point = euclidean(self.X[i, :], suggested_sample)
             if distance_to_evaluated_point < min_distance:
                 min_distance = distance_to_evaluated_point
-            if distance_to_evaluated_point < 1e-6:
+            if distance_to_evaluated_point < 1e-5:
                 use_suggested_sample = False
             i += 1
         if not use_suggested_sample:
@@ -410,36 +397,36 @@ class BOPU(object):
             suggested_sample = self._perturb(suggested_sample)
         return suggested_sample
 
-    def suggest_next_point_to_evaluate(self):
+    def suggest_next_points_to_evaluate(self):
         """
-        Computes the location of the new evaluation (optimizes the acquisition in the standard case).
-        :param pending_zipped_X: matrix of input configurations that are in a pending state (i.e., do not have an evaluation yet).
-        :param ignored_zipped_X: matrix of input configurations that the user black-lists, i.e., those configurations will not be suggested again.
-        :return:
         """
         # Initial function evaluation (if necessary)
         if self.X is not None and self.Y is None:
             self.Y, cost_values = self.objective.evaluate(self.X)
         # Update/initialize model
-        self.model.updateModel(self.X, self.Y)
+        if self.model is not None:
+            self.model.updateModel(self.X, self.Y)
         return self.sampling_policy.suggest_sample()
 
-    def _update_model(self):
+    def update_model(self):
         """
-        Updates the model (when more than one observation is available) and saves the parameters (if available).
+        Updates the model.
         """
         # Input that goes into the model (is unziped in case there are categorical variables)
         X_inmodel = self.space.unzip_inputs(self.X)
         Y_inmodel = list(self.Y)
         self.model.updateModel(X_inmodel, Y_inmodel)
+        if self.model.name is 'multi-output GP':
+            self.model.get_model_parameters_names()
+            self.model.get_model_parameters()
 
-    def _update_utility_distribution(self):
+    def update_utility_distribution(self):
         """
         """
         if self.dynamic_utility_parameter_distribution:
             self.utility.update_parameter_distribution(self.true_underlying_utility_func, self.Y)
 
-    def _distance_last_evaluations(self):
+    def distance_last_evaluations(self):
         """
         Computes the distance between the last two evaluations.
         """
@@ -466,7 +453,7 @@ class BOPU(object):
             os.makedirs(directory)
         np.savetxt(directory + '/' + experiment_name + '_Y.txt', np.squeeze(np.asarray(self.Y)))
 
-    def _save_results(self, filename):
+    def save_results(self, filename):
         """
         """
         if self.compute_true_underlying_optimal_value:
@@ -495,6 +482,3 @@ class BOPU(object):
             directory = results_folder_name + '/' + results_filename + '.txt'
             results = np.atleast_1d(self.historical_integrated_optimal_values)
             np.savetxt(directory, results)
-        #aux_filename = experiment_folder_name + '/historical marginal optima/' + experiment_name + '_historical_marginal_optima.txt'
-        #np.savetxt(aux_filename, self.historical_marginal_optima)
-

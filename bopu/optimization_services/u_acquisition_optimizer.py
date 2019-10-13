@@ -69,10 +69,10 @@ class U_AcquisitionOptimizer(object):
         self.f_df = f_df
         
 
-        ## --- Update the optimizer, in case context has beee passed.
+        # Update the optimizer, in case context has beee passed.
         self.optimizer = choose_optimizer(self.optimizer_name, self.context_manager.noncontext_bounds)
 
-        ## --- Selecting the anchor points and removing duplicates
+        # Selecting the anchor points and removing duplicates
         if self.type_anchor_points_logic == max_objective_anchor_points_logic:
             anchor_points_generator = ObjectiveAnchorPointsGenerator(self.space, random_design_type, f, self.n_starting)
         elif self.type_anchor_points_logic == thompson_sampling_anchor_points_logic:
@@ -80,6 +80,7 @@ class U_AcquisitionOptimizer(object):
            
         # Select the anchor points (with context)
         anchor_points, anchor_points_values = anchor_points_generator.get(num_anchor=self.n_anchor, duplicate_manager=duplicate_manager, context_manager=self.context_manager, get_scores=True)
+
         # Baseline points
         if self.include_baseline_points:
             X_baseline = []
@@ -104,13 +105,22 @@ class U_AcquisitionOptimizer(object):
             pool = Pool(4)
             optimized_points = pool.map(self._parallel_optimization_wrapper, anchor_points)
             print('optimized points (parallel):')
-            print(optimized_points)
+
         else:
             optimized_points = [apply_optimizer(self.optimizer, a, f=f, df=None, f_df=f_df, duplicate_manager=duplicate_manager, context_manager=self.context_manager, space = self.space) for a in anchor_points]                 
             print('Optimized points (sequential):')
-            print(optimized_points)                
+        print(optimized_points)
         x_min, fx_min = min(optimized_points, key=lambda t:t[1])
-        print('Acquisition value of selected point: {}'.format(-np.squeeze(fx_min)))
+        fx_min = np.squeeze(fx_min)
+
+        if self.include_baseline_points:
+            for i in range(X_baseline.shape[0]):
+                val = fX_baseline[i]
+                if val <= fx_min:
+                    print('Baseline point was best found.')
+                    x_min = np.atleast_2d(X_baseline[i, :])
+                    fx_min = val
+        print('Acquisition value of selected point: {}'.format(fx_min))
         return x_min, fx_min
     
     def _current_marginal_argmax(self, parameter):

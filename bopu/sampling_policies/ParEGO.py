@@ -1,22 +1,16 @@
 
-#import os
-#script_dir = os.path.dirname(os.path.abspath(__file__))
-#import sys
-#sys.path.append(script_dir[:-18])
-#print(script_dir[:-18])
 from sampling_policies.base import SamplingPolicyBase
-from core import MultiOutputGP
+from models import MultiOutputGP
 import aux_software.GPyOpt as GPyOpt
 from utility import UtilityDistribution
 from utility import Utility
 from sampling_policies.AcquisitionFunction import AcquisitionFunction
 from optimization_services import U_AcquisitionOptimizer
 from sampling_policies.acquisition_functions import uEI_affine
-from core import chebyshev_scalarization
+from others import chebyshev_scalarization
 from core import preference_encoder
 from bopu import BOPU
 import numpy as np
-from copy import deepcopy
 
 
 class ParEGO(SamplingPolicyBase):
@@ -38,17 +32,13 @@ class ParEGO(SamplingPolicyBase):
         Returns a suggested next point to evaluate.
         """
         # Get current evaluations
-        model_sample = self.model.get_copy_of_model_sample()
-        X_evaluated = np.copy(model_sample[0].X)
-        Y_evaluated = []
-        for j in range(len(model_sample)):
-            Y_evaluated.append(np.copy(model_sample[j].Y))
-        self.X_aux = np.copy(X_evaluated)
-        self.Y_aux = deepcopy(Y_evaluated)
+        X_evaluated, Y_evaluated = self.model.get_XY()
+        self.X_aux = X_evaluated
+        self.Y_aux = Y_evaluated
 
         # Auxiliary Bayesian optimization model to run ParEGO
-        weight = np.random.dirichlet(np.ones(len(self.Y_aux)))#self._sample_posterior_weight_for_chebyshev_scalarization()
-        self.Y_aux = np.reshape(self.Y_aux, (len(model_sample), self.Y_aux[0].shape[0]))
+        weight = np.random.dirichlet(np.ones(len(self.Y_aux)))  # self._sample_posterior_weight_for_chebyshev_scalarization()
+        self.Y_aux = np.reshape(self.Y_aux, (len(self.Y_aux), self.Y_aux[0].shape[0]))
         scalarized_fX = chebyshev_scalarization(self.Y_aux, weight)
         scalarized_fX = np.reshape(scalarized_fX, (len(scalarized_fX), 1))
 
@@ -71,7 +61,7 @@ class ParEGO(SamplingPolicyBase):
         aux_evaluator = GPyOpt.core.evaluators.Sequential(aux_acquisition)
         aux_sampling_policy = AcquisitionFunction(aux_model, self.space, aux_acquisition, aux_evaluator)
         bopu = BOPU(aux_model, self.space, sampling_policy=aux_sampling_policy, utility=aux_utility, X_init=self.X_aux, Y_init=[scalarized_fX], dynamic_utility_parameter_distribution=False)
-        suggested_sample = bopu.suggest_next_point_to_evaluate()
+        suggested_sample = bopu.suggest_next_points_to_evaluate()
         return suggested_sample
 
     def _sample_posterior_weight_for_chebyshev_scalarization(self):

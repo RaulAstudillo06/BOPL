@@ -14,14 +14,10 @@ class MultiOutputGP(object):
     :param kernel: GPy kernel to use in the GP model.
     :param noise_var: value of the noise variance if known.
     :param ARD: whether ARD is used in the kernel (default, False).
-
-    .. Note:: This model does Maximum likelihood estimation of the hyper-parameters.
-
     """
     analytical_gradient_prediction = True
 
     def __init__(self, output_dim, kernel=None, noise_var=None, exact_feval=None, n_samples=10, ARD=None, fixed_hyps=False):
-        
         self.output_dim = output_dim
         
         if kernel is None:
@@ -56,6 +52,7 @@ class MultiOutputGP(object):
                                                                 exact_feval=self.exact_feval[j],
                                                                 n_samples=self.n_samples, ARD=self.ARD[j],
                                                                 verbose=False)
+        self.name = 'multi-output GP'
 
     def updateModel(self, X_all, Y_all):
         """
