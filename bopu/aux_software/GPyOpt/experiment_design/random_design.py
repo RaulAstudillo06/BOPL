@@ -12,11 +12,11 @@ class RandomDesign(ExperimentDesign):
     def __init__(self, space):
         super(RandomDesign, self).__init__(space)
 
-    def get_samples(self, init_points_count):
+    def get_samples(self, init_points_count, seed=None):
         if self.space.has_constraints():
             return self.get_samples_with_constraints(init_points_count)
         else:
-            return self.get_samples_without_constraints(init_points_count)
+            return self.get_samples_without_constraints(init_points_count, seed)
 
     def get_samples_with_constraints(self, init_points_count):
         """
@@ -45,23 +45,27 @@ class RandomDesign(ExperimentDesign):
                 sample_var = np.atleast_2d(np.random.choice(var.domain, init_points_count))
                 samples[:,idx] = sample_var.flatten()
 
-    def get_samples_without_constraints(self, init_points_count):
+    def get_samples_without_constraints(self, init_points_count, seed=None):
         samples = np.empty((init_points_count, self.space.dimensionality))
         self.fill_noncontinous_variables(samples)
 
         if self.space.has_continuous():
-            X_design = samples_multidimensional_uniform(self.space.get_continuous_bounds(), init_points_count)
+            X_design = samples_multidimensional_uniform(self.space.get_continuous_bounds(), init_points_count, seed)
             samples[:, self.space.get_continuous_dims()] = X_design
         return samples
 
-def samples_multidimensional_uniform(bounds, points_count):
+def samples_multidimensional_uniform(bounds, points_count, seed=None):
     """
     Generates a multidimensional grid uniformly distributed.
     :param bounds: tuple defining the box constraints.
     :points_count: number of data points to generate.
     """
     dim = len(bounds)
-    Z_rand = np.zeros(shape=(points_count, dim))
-    for k in range(0,dim):
-        Z_rand[:,k] = np.random.uniform(low=bounds[k][0], high=bounds[k][1], size=points_count)
+    if seed is not None:
+        random_state = np.random.RandomState(seed)
+        Z_rand = random_state.uniform(size=(points_count, dim))
+    else:
+        Z_rand = np.random.uniform(size=(points_count, dim))
+    for k in range(dim):
+        Z_rand[:, k] = (bounds[k][1] - bounds[k][0])*Z_rand[:, k] + bounds[k][0]
     return Z_rand

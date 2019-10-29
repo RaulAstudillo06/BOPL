@@ -52,9 +52,6 @@ if __name__ == '__main__':
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
 
-    # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1))
-
     # Utility function
     def utility_func(y, parameter):
         return np.dot(parameter, y)
@@ -90,7 +87,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'uTS'
+    sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
         # Model (Multi-output GP)
         model = MultiOutputGP(output_dim=m, exact_feval=[True]*m, fixed_hyps=False)
@@ -115,6 +112,10 @@ if __name__ == '__main__':
     experiment_name = 'test_GP1'
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
+
+        # Initial design
+        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+
         # True underlying utility
         true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
         print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
@@ -134,6 +135,10 @@ if __name__ == '__main__':
     else:
         for i in range(1):
             experiment_number = i
+
+            # Initial design
+            initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+
             # True underlying utility
             true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
             print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
