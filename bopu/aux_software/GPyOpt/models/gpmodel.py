@@ -110,7 +110,6 @@ class GPModel(BOModel):
         """
         Updates the model with new observations.
         """
-        
         if self.model is None:
             self._create_model(X_all, Y_all)
         else:
@@ -121,7 +120,7 @@ class GPModel(BOModel):
                 #self.model_instances[i].param_array[:] = self.model_instances[i].param_array * (1.+np.random.randn(self.model_instances[i].param_array.size)*0.01)
 
         # update the model generating hmc samples
-        self.model.optimize(max_iters = 200)
+        self.model.optimize(max_iters=200)
         self.model.param_array[:] = self.model.param_array * (1.+np.random.randn(self.model.param_array.size)*0.01)
         self.hmc = GPy.inference.mcmc.HMC(self.model, stepsize=self.step_size)
         ss = self.hmc.sample(num_samples=self.n_burnin + self.n_samples* self.subsample_interval, hmc_iters=self.leapfrog_steps)
@@ -148,7 +147,15 @@ class GPModel(BOModel):
             #print(self.current_model.predict(np.atleast_2d([1., 3.4])))
             #print(self.model_instances[i].predict(np.atleast_2d([1., 3.4])))
         self.set_hyperparameters(0)
-        
+
+    def set_XY(self, X_all, Y_all):
+        if self.model is None:
+            self._create_model(X_all, Y_all)
+        else:
+            self.model.set_XY(X_all, Y_all)
+            for i in range(self.n_samples):
+                self.model_instances[i].set_XY(X_all, Y_all)
+
     def number_of_hyps_samples(self):
         """
         """
@@ -214,8 +221,7 @@ class GPModel(BOModel):
         if X.ndim==1: X = X[None,:]
         v = np.clip(self.current_model.posterior_variance_noiseless(X), 1e-10, np.inf)
         return v
-    
-    
+
     def partial_precomputation_for_covariance(self, X):
         """
         Computes the posterior covariance between points.
@@ -223,8 +229,7 @@ class GPModel(BOModel):
         :param X2: other input observations
         """
         self.current_model.partial_precomputation_for_covariance(X)
-        
-        
+
     def partial_precomputation_for_covariance_gradient(self, x):
         """
         Computes the posterior covariance between points.
@@ -260,14 +265,12 @@ class GPModel(BOModel):
         """
         self.current_model.partial_precomputation_for_covariance_conditioned_on_next_point(next_point)
         
-        
     def chol_posterior_covariance_conditioned_on_next_point(self, X):
         """
         Computes the posterior covariance between points.
         :param X: some input observations
         """
         return self.current_model.chol_posterior_covariance_conditioned_on_next_point(X)
-        
     
     def posterior_covariance_between_points(self, X1, X2):
         """
@@ -276,7 +279,6 @@ class GPModel(BOModel):
         :param X2: other input observations
         """
         return self.current_model.posterior_covariance_between_points(X1,X2)
-    
     
     def posterior_covariance_between_points_partially_precomputed(self, X1, X2):
         """
@@ -288,7 +290,6 @@ class GPModel(BOModel):
         :param X2: other input observations
         """
         return self.current_model.posterior_covariance_between_points_partially_precomputed(X1, X2)
-    
 
     def get_fmin(self):
         """
@@ -318,13 +319,11 @@ class GPModel(BOModel):
         """
         return self.current_model.posterior_covariance_gradient(X,X2)
     
-    
     def posterior_covariance_gradient_partially_precomputed(self, X, x2):
         """
         Compute the derivatives of the posterior covariance, K^(n)(X,x2), with respect to X.
         """
         return self.current_model.posterior_covariance_gradient_partially_precomputed( X, x2)
-    
 
     def predict_withGradients(self, X):
         """

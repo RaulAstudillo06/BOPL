@@ -15,7 +15,7 @@ class LatinDesign(ExperimentDesign):
             raise InvalidConfigError('Sampling with constraints is not allowed by latin design')
         super(LatinDesign, self).__init__(space)
 
-    def get_samples(self, init_points_count):
+    def get_samples(self, init_points_count, seed=None):
         samples = np.empty((init_points_count, self.space.dimensionality))
 
         # Use random design to fill non-continuous variables

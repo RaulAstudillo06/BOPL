@@ -13,7 +13,8 @@ class UtilityDistribution(object):
         if support is None and prior_sample_generator is None:
             raise Exception('Either a finite support or a sample generator have to be provided.')
         self.support = support
-        self.prob_dist = prob_dist
+        self.prior_prob_dist = np.copy(prob_dist)
+        self.prob_dist = np.copy(prob_dist)
         self.prior_sample_generator = prior_sample_generator
         self.utility_func = utility_func
         self.elicitation_strategy = elicitation_strategy
@@ -28,22 +29,32 @@ class UtilityDistribution(object):
             else:
                 self.use_full_support = False
 
-    def _sample_from_prior(self, number_of_samples=1):
-        parameter_samples = self.prior_sample_generator(number_of_samples)
+    def sample_from_prior(self, number_of_samples=1, seed=None):
+        if self.support is None:
+            parameter_samples = self.prior_sample_generator(number_of_samples, seed)
+        else:
+            if seed is not None:
+                random_state = np.random.RandomState(seed)
+                indices = random_state.choice(int(len(self.support)), size=number_of_samples, p=self.prior_prob_dist)
+                parameter_samples = self.support[indices, :]
+            else:
+                indices = np.random.choice(int(len(self.support)), size=number_of_samples, p=self.prior_prob_dist)
+                parameter_samples = self.support[indices, :]
+
         if number_of_samples > 1 and parameter_samples.ndim < 2:
-            number_of_samples = number_of_samples.reshape((number_of_samples, ))
+            parameter_samples = parameter_samples.reshape((number_of_samples, ))
         return parameter_samples
     
     def sample(self, number_of_samples=1):
         if self.support is None:
             if len(self.preference_information) == 0:
-                parameter_samples = self._sample_from_prior(number_of_samples)
+                parameter_samples = self.sample_from_prior(number_of_samples)
             else:
                 parameter_samples = []
                 number_of_gathered_samples = 0
                 test_counter = 0
                 while number_of_gathered_samples < number_of_samples:
-                    suggested_sample = self._sample_from_prior(1)[0]
+                    suggested_sample = self.sample_from_prior(1)[0]
                     test_counter += 1
                     keep_verifying = True
                     counter = 0

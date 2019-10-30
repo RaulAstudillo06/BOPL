@@ -7,7 +7,8 @@ if __name__ == '__main__':
     import aux_software.GPyOpt as GPyOpt
     import aux_software.GPy as GPy
     from core import Attributes
-    from core import MultiOutputGP
+    from models import MultiOutputGP
+    from models import BasicModel
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_affine
@@ -20,7 +21,7 @@ if __name__ == '__main__':
     from bopu import BOPU
     from optimization_services import U_AcquisitionOptimizer
 
-    # Function to optimize
+    # Attributes
     d = 3
     m = 2
     I = np.linspace(0., 1., 10)
@@ -35,8 +36,6 @@ if __name__ == '__main__':
     Y2 = r2.multivariate_normal(mean, cov)
     Y1 = np.reshape(Y1, (1000, 1))
     Y2 = np.reshape(Y2, (1000, 1))
-    #print(Y1[:5, 0])
-    #print(Y2[:5, 0])
     model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
     model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
 
@@ -48,19 +47,10 @@ if __name__ == '__main__':
         X_copy = np.atleast_2d(X)
         return model2.posterior_mean(X_copy)
 
-    # noise_var = [0.25,0.25]
     attributes = Attributes([f1, f2])
-    # f = MultiObjective([f1,f2], noise_var=noise_var)
 
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
-
-    # Model (Multi-output GP)
-    model = MultiOutputGP(output_dim=m, exact_feval=[True, True], fixed_hyps=False)
-    # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
-
-    # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1))
 
     # Utility function
     def utility_func(y, parameter):
@@ -77,9 +67,14 @@ if __name__ == '__main__':
     #print(np.sum(utility_parameter_support ** 2, axis=1))
     #utility_parameter_prob_distribution = np.ones((L,)) / L
 
-    def prior_sample_generator(n_samples):
+    def prior_sample_generator(n_samples=1, seed=None):
+        if seed is None:
+            base_random_numbers = np.random.rand(n_samples)
+        else:
+            random_state = np.random.RandomState(seed)
+            base_random_numbers = random_state.rand(n_samples)
+        alpha = 0.5 * np.pi * base_random_numbers
         samples = np.empty((n_samples, 2))
-        alpha = 0.5 * np.pi * np.random.rand(n_samples)
         samples[:, 0] = np.cos(alpha)
         samples[:, 1] = np.sin(alpha)
         return samples
@@ -92,36 +87,45 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'ParEGO'
+    sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
-        # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
+        # Model (Multi-output GP)
+        model = MultiOutputGP(output_dim=m, exact_feval=[True]*m, fixed_hyps=False)
 
+        # Sampling policy
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
     elif sampling_policy_name is 'uTS':
+        model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
-        acquisition = None
     elif sampling_policy_name is 'Random':
-        sampling_policy = Random(model, space)
+        model = BasicModel(output_dim=m)
+        sampling_policy = Random(model=None, space=space)
     elif sampling_policy_name is 'ParEGO':
+        model = BasicModel(output_dim=m)
         sampling_policy = ParEGO(model, space, utility)
 
     # BO model
     max_iter = 100
     experiment_name = 'test_GP1'
     if len(sys.argv) > 1:
-        experiment_number = str(sys.argv[1])
-        filename = [experiment_name, sampling_policy_name, experiment_number]
+        experiment_number = int(sys.argv[1])
+
+        # Initial design
+        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
         # True underlying utility
-        random_state = np.random.RandomState(int(sys.argv[1]))
-        true_underlying_utility_parameter = np.empty((2, ))
-        alpha = 0.5 * np.pi * random_state.rand(1)
-        true_underlying_utility_parameter[0] = np.cos(alpha)
-        true_underlying_utility_parameter[1] = np.sin(alpha)
-        print(true_underlying_utility_parameter)
+        true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
+        print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
+
+        def true_underlying_utility_func(y):
+            return utility_func(y, true_underlying_utility_parameter)
+
+        #
+        experiment_number = str(experiment_number)
+        filename = [experiment_name, sampling_policy_name, experiment_number]
 
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
@@ -130,20 +134,21 @@ if __name__ == '__main__':
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
-            experiment_number = str(i)
-            filename = [experiment_name, sampling_policy_name, experiment_number]
+            experiment_number = i
+
+            # Initial design
+            initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
             # True underlying utility
-            random_state = np.random.RandomState(int(sys.argv[1]))
-            true_underlying_utility_parameter = np.empty((2,))
-            alpha = 0.5 * np.pi * random_state.rand(1)
-            true_underlying_utility_parameter[0] = np.cos(alpha)
-            true_underlying_utility_parameter[1] = np.sin(alpha)
-            print(true_underlying_utility_parameter)
+            true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
+            print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
             def true_underlying_utility_func(y):
                 return utility_func(y, true_underlying_utility_parameter)
 
+            #
+            experiment_number = str(experiment_number)
+            filename = [experiment_name, sampling_policy_name, experiment_number]
+
             bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
-

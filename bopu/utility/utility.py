@@ -42,6 +42,9 @@ class Utility(object):
         """
         return self.gradient(y, theta)
 
+    def sample_parameter_from_prior(self, number_of_samples=1, seed=None):
+        return self.parameter_distribution.sample_from_prior(number_of_samples, seed)
+
     def sample_parameter(self, number_of_samples=1):
         return self.parameter_distribution.sample(number_of_samples)
 

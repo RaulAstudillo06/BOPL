@@ -9,12 +9,10 @@ class SamplingPolicyBase(object):
     :param model: GPyOpt class of model
     :param space: GPyOpt class of domain.
     """
-    analytical_gradient_prediction = False
 
-    def __init__(self, model, space):
+    def __init__(self, model=None, space=None):
         self.model = model
         self.space = space
-        self.analytical_gradient_objective = self.analytical_gradient_prediction and self.model.analytical_gradient_prediction # flag from the model to test if gradients are available
 
     def suggest_sample(self, number_of_samples=1):
         """

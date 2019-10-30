@@ -4,7 +4,7 @@ from .latin_design import LatinDesign
 from .random_design import RandomDesign
 from .sobol_design import SobolDesign
 
-def initial_design(design_name, space, init_points_count):
+def initial_design(design_name, space, init_points_count, seed=None):
     design = None
     if design_name == 'random':
         design = RandomDesign(space)
@@ -17,4 +17,4 @@ def initial_design(design_name, space, init_points_count):
     else:
         raise ValueError('Unknown design type: ' + design_name)
 
-    return design.get_samples(init_points_count)
+    return design.get_samples(init_points_count, seed)

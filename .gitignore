@@ -67,3 +67,6 @@ __pycache__/
 
 # Experimental results
 results/
+results_assesment/
+definitive_results/
+

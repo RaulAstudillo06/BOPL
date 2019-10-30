@@ -168,7 +168,7 @@ class uEI(AcquisitionBase):
         return marginal_acqX, marginal_dacq_dX
 
     def update_samples(self):
-        print('Update W and utility parameter samples')
+        print('Updating W and utility parameter samples used for acquisition function maximization.')
         self.W_samples = np.random.normal(size=self.W_samples.shape)
         if self.use_full_support:
             self.utility_parameter_samples = self.utility.parameter_distribution.support

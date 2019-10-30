@@ -142,7 +142,7 @@ class uEI_affine(AcquisitionBase):
         return (phi, Phi, u)
     
     def update_samples(self):
-        print('Update utility parameter samples')
+        print('Updating utility parameter samples used for acquisition function maximization.')
         if self.use_full_support:
             self.utility_parameter_samples = self.utility.parameter_distribution.support
             self.utility_prob_dist = self.utility.parameter_distribution.prob_dist
