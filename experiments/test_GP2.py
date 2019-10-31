@@ -9,6 +9,7 @@ if __name__ == '__main__':
     import aux_software.GPy as GPy
     from core import Attributes
     from models import MultiOutputGP
+    from models import BasicModel
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI
@@ -123,7 +124,8 @@ if __name__ == '__main__':
         sampling_policy = TS(model, optimization_space, optimizer='CMA', scenario_distribution=scenario_distribution,
                              utility=utility, expectation_utility=expectation_utility)
     elif sampling_policy_name is 'Random':
-        sampling_policy = Random(model, space)
+        model = BasicModel(output_dim=m)
+        sampling_policy = Random(model=None, space=space)
 
     # BO model
     max_iter = 100
