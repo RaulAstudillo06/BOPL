@@ -107,7 +107,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, expectation=expectation_utility)
 
     # --- Sampling policy
-    sampling_policy_name = 'ParEGO'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Model (Multi-output GP)
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)
@@ -151,7 +151,7 @@ if __name__ == '__main__':
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
-        for i in range(1):
+        for i in range(1, 50):
             experiment_number = i
 
             # Initial design
