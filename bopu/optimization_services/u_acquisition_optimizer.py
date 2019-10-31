@@ -3,6 +3,7 @@ from aux_software.GPyOpt.optimization.optimizer import apply_optimizer, choose_o
 from aux_software.GPyOpt.optimization.anchor_points_generator import ObjectiveAnchorPointsGenerator, ThompsonSamplingAnchorPointsGenerator
 from pathos.multiprocessing import ProcessingPool as Pool
 import numpy as np
+import random
 
 max_objective_anchor_points_logic = "max_objective"
 thompson_sampling_anchor_points_logic = "thompsom_sampling"
@@ -114,12 +115,23 @@ class U_AcquisitionOptimizer(object):
         fx_min = np.squeeze(fx_min)
 
         if self.include_baseline_points:
-            for i in range(X_baseline.shape[0]):
-                val = fX_baseline[i]
-                if val <= fx_min:
-                    print('Baseline point was best found.')
-                    x_min = np.atleast_2d(X_baseline[i, :])
-                    fx_min = val
+            fx_min_baseline = fX_baseline.min()
+            if fx_min_baseline < fx_min:
+                print('Baseline point was best found.')
+                optimal_indices = np.argmin(fX_baseline)
+                index = random.choice(optimal_indices)
+                x_min = np.atleast_2d(X_baseline[index, :])
+                fx_min = fX_baseline[index]
+            elif fx_min_baseline == fx_min:
+                print('Baseline point is a good as best optimized point.')
+                use_baseline_point = np.random.binomial(1, 0.5, 1)
+                if use_baseline_point:
+                    print('Baseline point will be used.')
+                    optimal_indices = np.atleast_1d(np.argmin(fX_baseline))
+                    index = random.choice(optimal_indices)
+                    x_min = np.atleast_2d(X_baseline[index, :])
+                    fx_min = fX_baseline[index]
+
         print('Acquisition value of selected point: {}'.format(fx_min))
         return x_min, fx_min
     
