@@ -97,7 +97,7 @@ if __name__ == '__main__':
     sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=4, include_baseline_points=False)
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=8, include_baseline_points=False)
 
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)

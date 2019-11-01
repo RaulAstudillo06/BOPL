@@ -21,34 +21,17 @@ if __name__ == '__main__':
     from bopu import BOPU
     from optimization_services import U_AcquisitionOptimizer
 
-    # Attributes
+    # Input and output dimensions
     d = 3
     m = 2
+
+    # Attributes (preliminaries)
     I = np.linspace(0., 1., 10)
     x, y, z = np.meshgrid(I, I, I)
     grid = np.array([x.flatten(), y.flatten(), z.flatten()]).T
     kernel = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3]*d))
     cov = kernel.K(grid)
     mean = np.zeros((1000,))
-    r1 = np.random.RandomState(1)
-    Y1 = r1.multivariate_normal(mean, cov)
-    r2 = np.random.RandomState(2)
-    Y2 = r2.multivariate_normal(mean, cov)
-    Y1 = np.reshape(Y1, (1000, 1))
-    Y2 = np.reshape(Y2, (1000, 1))
-    model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
-    model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
-
-    def f1(X):
-        X_copy = np.atleast_2d(X)
-        return model1.posterior_mean(X_copy)
-
-    def f2(X):
-        X_copy = np.atleast_2d(X)
-        return model2.posterior_mean(X_copy)
-
-    attributes = Attributes([f1, f2])
-
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
 
@@ -113,6 +96,26 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
 
+        # Attributes
+        r1 = np.random.RandomState(experiment_number)
+        Y1 = r1.multivariate_normal(mean, cov)
+        r2 = np.random.RandomState(2*experiment_number)
+        Y2 = r2.multivariate_normal(mean, cov)
+        Y1 = np.reshape(Y1, (1000, 1))
+        Y2 = np.reshape(Y2, (1000, 1))
+        model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
+        model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
+
+        def f1(X):
+            X_copy = np.atleast_2d(X)
+            return model1.posterior_mean(X_copy)
+
+        def f2(X):
+            X_copy = np.atleast_2d(X)
+            return model2.posterior_mean(X_copy)
+
+        attributes = Attributes([f1, f2])
+
         # Initial design
         initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
@@ -130,11 +133,31 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
+        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
             experiment_number = i
+
+            # Attributes
+            r1 = np.random.RandomState(experiment_number)
+            Y1 = r1.multivariate_normal(mean, cov)
+            r2 = np.random.RandomState(2 * experiment_number)
+            Y2 = r2.multivariate_normal(mean, cov)
+            Y1 = np.reshape(Y1, (1000, 1))
+            Y2 = np.reshape(Y2, (1000, 1))
+            model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
+            model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
+
+            def f1(X):
+                X_copy = np.atleast_2d(X)
+                return model1.posterior_mean(X_copy)
+
+            def f2(X):
+                X_copy = np.atleast_2d(X)
+                return model2.posterior_mean(X_copy)
+
+            attributes = Attributes([f1, f2])
 
             # Initial design
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
@@ -150,5 +173,5 @@ if __name__ == '__main__':
             experiment_number = str(experiment_number)
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
-            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=False)
+            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
