@@ -133,8 +133,11 @@ class BOPU(object):
             self.X = np.vstack((self.X, self.suggested_sample))
             if filename is not None:
                 self.save_evaluations(filename)
-
-            self.update_model()  # Update model
+            
+            # Update model
+            self.update_model()
+            self.model.get_model_parameters_names()
+            self.model.get_model_parameters()
 
             # Compute_performance_results and save them
             if self.true_underlying_utility_func is not None:

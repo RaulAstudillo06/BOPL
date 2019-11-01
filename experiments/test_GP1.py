@@ -29,8 +29,10 @@ if __name__ == '__main__':
     I = np.linspace(0., 1., 10)
     x, y, z = np.meshgrid(I, I, I)
     grid = np.array([x.flatten(), y.flatten(), z.flatten()]).T
-    kernel = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3]*d))
-    cov = kernel.K(grid)
+    kernel1 = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.3, 0.4]))
+    kernel2 = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.4, 0.6]))
+    cov1 = kernel1.K(grid)
+    cov2 = kernel2.K(grid)
     mean = np.zeros((1000,))
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
@@ -98,13 +100,13 @@ if __name__ == '__main__':
 
         # Attributes
         r1 = np.random.RandomState(experiment_number)
-        Y1 = r1.multivariate_normal(mean, cov)
+        Y1 = r1.multivariate_normal(mean, cov1)
         r2 = np.random.RandomState(2*experiment_number)
-        Y2 = r2.multivariate_normal(mean, cov)
+        Y2 = r2.multivariate_normal(mean, cov2)
         Y1 = np.reshape(Y1, (1000, 1))
         Y2 = np.reshape(Y2, (1000, 1))
-        model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
-        model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
+        model1 = GPy.models.GPRegression(grid, Y1, kernel1, noise_var=1e-10)
+        model2 = GPy.models.GPRegression(grid, Y2, kernel2, noise_var=1e-10)
 
         def f1(X):
             X_copy = np.atleast_2d(X)
