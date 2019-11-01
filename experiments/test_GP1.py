@@ -29,11 +29,14 @@ if __name__ == '__main__':
     I = np.linspace(0., 1., 10)
     x, y, z = np.meshgrid(I, I, I)
     grid = np.array([x.flatten(), y.flatten(), z.flatten()]).T
-    kernel1 = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.3, 0.4]))
-    kernel2 = GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.4, 0.6]))
-    cov1 = kernel1.K(grid)
-    cov2 = kernel2.K(grid)
+    kernel = []
+    kernel.append(GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.3, 0.4])))
+    kernel.append(GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.2, 0.4, 0.6])))
+    cov = []
+    cov.append(kernel[0].K(grid))
+    cov.append(kernel[1].K(grid))
     mean = np.zeros((1000,))
+
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
 
@@ -54,14 +57,10 @@ if __name__ == '__main__':
 
     def prior_sample_generator(n_samples=1, seed=None):
         if seed is None:
-            base_random_numbers = np.random.rand(n_samples)
+            samples = np.random.dirichlet(np.ones((m, )))
         else:
             random_state = np.random.RandomState(seed)
-            base_random_numbers = random_state.rand(n_samples)
-        alpha = 0.5 * np.pi * base_random_numbers
-        samples = np.empty((n_samples, 2))
-        samples[:, 0] = np.cos(alpha)
-        samples[:, 1] = np.sin(alpha)
+            samples = random_state.dirichlet(np.ones((m, )))
         return samples
 
 
@@ -99,24 +98,21 @@ if __name__ == '__main__':
         experiment_number = int(sys.argv[1])
 
         # Attributes
-        r1 = np.random.RandomState(experiment_number)
-        Y1 = r1.multivariate_normal(mean, cov1)
-        r2 = np.random.RandomState(2*experiment_number)
-        Y2 = r2.multivariate_normal(mean, cov2)
-        Y1 = np.reshape(Y1, (1000, 1))
-        Y2 = np.reshape(Y2, (1000, 1))
-        model1 = GPy.models.GPRegression(grid, Y1, kernel1, noise_var=1e-10)
-        model2 = GPy.models.GPRegression(grid, Y2, kernel2, noise_var=1e-10)
+        aux_model = []
+        for j in range(m):
+            r = np.random.RandomState(j + experiment_number)
+            Y = r.multivariate_normal(mean, cov[j % 2])
+            Y = np.reshape(Y, (1000, 1))
+            aux_model.append(GPy.models.GPRegression(grid, Y, kernel[j % 2], noise_var=1e-10))
 
-        def f1(X):
-            X_copy = np.atleast_2d(X)
-            return model1.posterior_mean(X_copy)
+        def f(X):
+            X = np.atleast_2d(X)
+            fX = np.empty((m, X.shape[0]))
+            for j in range(m):
+                fX[j, :] = aux_model[j].posterior_mean(X)[:, 0]
+            return fX
 
-        def f2(X):
-            X_copy = np.atleast_2d(X)
-            return model2.posterior_mean(X_copy)
-
-        attributes = Attributes([f1, f2])
+        attributes = Attributes(f, as_list=False, output_dim=m)
 
         # Initial design
         initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
@@ -142,24 +138,23 @@ if __name__ == '__main__':
             experiment_number = i
 
             # Attributes
-            r1 = np.random.RandomState(experiment_number)
-            Y1 = r1.multivariate_normal(mean, cov)
-            r2 = np.random.RandomState(2 * experiment_number)
-            Y2 = r2.multivariate_normal(mean, cov)
-            Y1 = np.reshape(Y1, (1000, 1))
-            Y2 = np.reshape(Y2, (1000, 1))
-            model1 = GPy.models.GPRegression(grid, Y1, kernel, noise_var=1e-10)
-            model2 = GPy.models.GPRegression(grid, Y2, kernel, noise_var=1e-10)
+            aux_model = []
+            for j in range(m):
+                r = np.random.RandomState(j + experiment_number)
+                Y = r.multivariate_normal(mean, cov[j % 2])
+                Y = np.reshape(Y, (1000, 1))
+                aux_model.append(GPy.models.GPRegression(grid, Y, kernel[j % 2], noise_var=1e-10))
 
-            def f1(X):
-                X_copy = np.atleast_2d(X)
-                return model1.posterior_mean(X_copy)
 
-            def f2(X):
-                X_copy = np.atleast_2d(X)
-                return model2.posterior_mean(X_copy)
+            def f(X):
+                X = np.atleast_2d(X)
+                fX = np.empty((m, X.shape[0]))
+                for j in range(m):
+                    fX[j, :] = aux_model[j].posterior_mean(X)[:, 0]
+                return fX
 
-            attributes = Attributes([f1, f2])
+
+            attributes = Attributes(f, as_list=False, output_dim=m)
 
             # Initial design
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
