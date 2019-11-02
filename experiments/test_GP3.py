@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     # Input and output dimensions
     d = 3
-    m = 6
+    m = 2
 
     # Attributes (preliminaries)
     I = np.linspace(0., 1., 10)
@@ -92,8 +92,8 @@ if __name__ == '__main__':
         sampling_policy = ParEGO(model, space, utility)
 
     # BO model
-    max_iter = 2
-    experiment_name = 'test_GP1_' + str(m)
+    max_iter = 100
+    experiment_name = 'test_GP3_' + str(m)
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
 
