@@ -32,3 +32,13 @@ class BasicModel(object):
         X = np.copy(self.X)
         Y = deepcopy(self.Y)
         return X, Y
+    
+    def get_model_parameters(self):
+        """
+        """
+        pass
+
+    def get_model_parameters_names(self):
+        """
+        """
+        pass
