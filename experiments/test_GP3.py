@@ -81,15 +81,19 @@ if __name__ == '__main__':
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
+        dynamic_utility_parameter_distribution = True
     elif sampling_policy_name is 'uTS':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
+        dynamic_utility_parameter_distribution = True
     elif sampling_policy_name is 'Random':
         model = BasicModel(output_dim=m)
         sampling_policy = Random(model=None, space=space)
+        dynamic_utility_parameter_distribution = False
     elif sampling_policy_name is 'ParEGO':
         model = BasicModel(output_dim=m)
         sampling_policy = ParEGO(model, space, utility)
+        dynamic_utility_parameter_distribution = False
 
     # BO model
     max_iter = 100
@@ -131,7 +135,7 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
@@ -170,5 +174,5 @@ if __name__ == '__main__':
             experiment_number = str(experiment_number)
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
-            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
