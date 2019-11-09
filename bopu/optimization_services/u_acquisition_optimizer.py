@@ -118,7 +118,7 @@ class U_AcquisitionOptimizer(object):
             fx_min_baseline = fX_baseline.min()
             if fx_min_baseline < fx_min:
                 print('Baseline point was best found.')
-                optimal_indices = np.argmin(fX_baseline)
+                optimal_indices = np.atleast_1d(np.argmin(fX_baseline))
                 index = random.choice(optimal_indices)
                 x_min = np.atleast_2d(X_baseline[index, :])
                 fx_min = fX_baseline[index]

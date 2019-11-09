@@ -71,7 +71,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'ParEGO'
+    sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
         # Model (Multi-output GP)
         model = MultiOutputGP(output_dim=m, exact_feval=[True]*m, fixed_hyps=False)
