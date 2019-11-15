@@ -132,9 +132,6 @@ if __name__ == '__main__':
         experiment_number = str(experiment_number)
         filename = [experiment_name, sampling_policy_name, experiment_number]
 
-        def true_underlying_utility_func(y):
-            return utility_func(y, true_underlying_utility_parameter)
-
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:

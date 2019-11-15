@@ -8,7 +8,8 @@ if __name__ == '__main__':
     import aux_software.GPyOpt as GPyOpt
     import aux_software.GPy as GPy
     from core import Attributes
-    from core import MultiOutputGP
+    from models import MultiOutputGP
+    from models import BasicModel
     from sampling_policies import Random
     from sampling_policies import uTS
     from sampling_policies import ParEGO
@@ -84,8 +85,13 @@ if __name__ == '__main__':
                 val = -np.infty
         return val
 
-    def prior_sample_generator(n_samples):
-        samples = 8.0 * np.random.rand(n_samples) + 2.0
+    def prior_sample_generator(n_samples, seed=None):
+        if seed is None:
+            samples = np.random.rand(n_samples)
+        else:
+            random_state = np.random.RandomState(seed)
+            samples = random_state.rand(n_samples)
+        samples = 8.0 * samples + 2.0
         samples = -np.reshape(samples, (n_samples, 1))
         return samples
 
@@ -96,26 +102,30 @@ if __name__ == '__main__':
     # --- Sampling policy
     sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
-        # Acquisition optimizer
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=8, include_baseline_points=False)
-
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
-    elif sampling_policy_name is 'TS':
-        sampling_policy = TS(model, optimization_space, optimizer='CMA', scenario_distribution=scenario_distribution,
-                             utility=utility, expectation_utility=expectation_utility)
+        dynamic_utility_parameter_distribution = True
+    elif sampling_policy_name is 'uTS':
+        model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
+        sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
+        dynamic_utility_parameter_distribution = True
     elif sampling_policy_name is 'Random':
-        sampling_policy = Random(model, space)
+        model = BasicModel(output_dim=m)
+        sampling_policy = Random(model=None, space=space)
+        dynamic_utility_parameter_distribution = False
     elif sampling_policy_name is 'ParEGO':
+        model = BasicModel(output_dim=m)
         sampling_policy = ParEGO(model, space, utility)
+        dynamic_utility_parameter_distribution = False
 
     # BO model
     max_iter = 100
     experiment_name = 'test_portfolio2'
     if len(sys.argv) > 1:
-        experiment_number = str(sys.argv[1])
-        filename = [experiment_name, sampling_policy_name, experiment_number]
+        experiment_number = int(sys.argv[1])
+        filename = [experiment_name, sampling_policy_name, str(experiment_number)]
 
         # Attributes
         copy_of_risk_model_name = 'risk_model_' + filename[0] + '_' + filename[1] + '_' + filename[2] + '.h5'
@@ -161,26 +171,27 @@ if __name__ == '__main__':
 
         attributes = Attributes(f, as_list=False, output_dim=m)
 
+        # Initial design
+        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+
         # True underlying utility
-        random_state = np.random.RandomState(int(sys.argv[1]))
-        true_underlying_utility_parameter = 8.0 * random_state.rand(1) + 2.0
-        true_underlying_utility_parameter = -np.reshape(true_underlying_utility_parameter, (1, ))
-        print(true_underlying_utility_parameter)
+        true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
+        print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design,
                     true_underlying_utility_func=true_underlying_utility_func,
-                    dynamic_utility_parameter_distribution=True)
+                    dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
-                              compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+                              compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
         subprocess.call(['bash', script_dir + '/delete_copy_of_risk_model.sh', datadir + copy_of_risk_model_name])
     else:
-        for i in range(39, 40):
-            experiment_number = str(i)
-            filename = [experiment_name, sampling_policy_name, experiment_number]
+        for i in range(1):
+            experiment_number = i
+            filename = [experiment_name, sampling_policy_name, str(experiment_number)]
 
             # Attributes
             copy_of_risk_model_name = 'risk_model_' + filename[0] + '_' + filename[1] + '_' + filename[2] + '.h5'
@@ -227,19 +238,20 @@ if __name__ == '__main__':
 
             attributes = Attributes(f, as_list=False, output_dim=m)
 
+            # Initial design
+            initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+
             # True underlying utility
-            random_state = np.random.RandomState(i)
-            true_underlying_utility_parameter = 8.0 * random_state.rand(1) + 2.0
-            true_underlying_utility_parameter = -np.reshape(true_underlying_utility_parameter, (1, ))
-            print(true_underlying_utility_parameter)
+            true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
+            print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
             def true_underlying_utility_func(y):
                 return utility_func(y, true_underlying_utility_parameter)
 
             bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design,
                         true_underlying_utility_func=true_underlying_utility_func,
-                        dynamic_utility_parameter_distribution=True)
+                        dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                                   utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
-                                  compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+                                  compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
             subprocess.call(['bash', script_dir + '/delete_copy_of_risk_model.sh', datadir + copy_of_risk_model_name])
