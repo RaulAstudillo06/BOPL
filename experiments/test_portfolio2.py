@@ -62,11 +62,6 @@ if __name__ == '__main__':
     model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)
     # model = multi_outputGP(output_dim=n_attributes, noise_var=noise_var, fixed_hyps=True)
 
-    # Initial design
-    initial_design = GPyOpt.experiment_design.initial_design('random', space, 2*(d+1))
-    feasible_point = np.atleast_1d([0.31, 0.27, 1.])
-    initial_design = np.vstack((initial_design, feasible_point))
-
     # Utility function
     def utility_func(y, parameter):
         y_aux = np.squeeze(y)
@@ -172,7 +167,9 @@ if __name__ == '__main__':
         attributes = Attributes(f, as_list=False, output_dim=m)
 
         # Initial design
-        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2, experiment_number)
+        feasible_point = np.atleast_1d([0.31, 0.27, 1.])
+        initial_design = np.vstack((initial_design, feasible_point))
 
         # True underlying utility
         true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
@@ -240,6 +237,8 @@ if __name__ == '__main__':
 
             # Initial design
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
+            feasible_point = np.atleast_1d([0.31, 0.27, 1.])
+            initial_design = np.vstack((initial_design, feasible_point))
 
             # True underlying utility
             true_underlying_utility_parameter = prior_sample_generator(1, experiment_number)[0]
