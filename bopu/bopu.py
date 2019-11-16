@@ -454,7 +454,7 @@ class BOPU(object):
         directory = experiment_folder_name + '/Y'
         if not os.path.exists(directory):
             os.makedirs(directory)
-        np.savetxt(directory + '/' + experiment_name + '_Y.txt', np.squeeze(np.asarray(self.Y)))
+        np.savetxt(directory + '/' + experiment_name + '_Y.txt', np.transpose(np.squeeze(np.asarray(self.Y))))
 
     def save_results(self, filename):
         """
