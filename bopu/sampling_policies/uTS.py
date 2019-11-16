@@ -50,11 +50,7 @@ class uTS(SamplingPolicyBase):
             return -val
 
         d0 = initial_design('random', self.space, 1)
-        try:
-            suggested_sample = apply_optimizer(self.optimizer, d0, f=objective_func_sample,
+        suggested_sample = apply_optimizer(self.optimizer, d0, f=objective_func_sample,
                                      context_manager=self.context_manager, space=self.space, maxfevals=600)[0]
-        except:
-            suggested_sample = d0
-
         suggested_sample = np.atleast_2d(suggested_sample)
         return suggested_sample

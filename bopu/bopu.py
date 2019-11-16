@@ -7,6 +7,7 @@ from scipy.spatial.distance import euclidean
 from aux_software.GPyOpt.core.errors import InvalidConfigError
 from aux_software.GPyOpt.core.task.cost import CostModel
 from aux_software.GPyOpt.optimization import GeneralOptimizer
+from aux_software.GPyOpt.experiment_design import initial_design
 
 
 class BOPU(object):
@@ -56,6 +57,7 @@ class BOPU(object):
         self.evaluation_optimizer = GeneralOptimizer(optimizer='lbfgs', space=self.space, parallel=False)
         script_dir = os.path.dirname(__file__)
         self.project_path = script_dir[:-5]
+        self.failed_acquisitions = 0
 
     def run_optimization(self, max_iter=1, filename=None, max_time=np.inf, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False, compute_true_integrated_optimal_value=False, compute_integrated_optimal_values=False):
         """
@@ -126,6 +128,8 @@ class BOPU(object):
             print('Experiment: ' + filename[0])
             print('Sampling policy: ' + filename[1])
             print('Replication id: ' + filename[2])
+            if self.failed_acquisitions > 0:
+                print('Failed number of acquisitions so far: {}'.format(self.failed_acquisitions))
             print('Acquisition number: {}'.format(self.num_acquisitions + 1))
             self.suggested_sample = self._compute_next_evaluations()
             print('Suggested point to evaluate: {}'.format(self.suggested_sample))
@@ -385,6 +389,12 @@ class BOPU(object):
         :return:
         """
         suggested_sample = self.sampling_policy.suggest_sample()
+        try:
+            suggested_sample = self.sampling_policy.suggest_sample()
+        except:
+            suggested_sample = initial_design('random', self.space, 1)
+            self.failed_acquisitions += 1
+
         use_suggested_sample = True
         i = 0
         min_distance = np.infty
@@ -392,7 +402,7 @@ class BOPU(object):
             distance_to_evaluated_point = euclidean(self.X[i, :], suggested_sample)
             if distance_to_evaluated_point < min_distance:
                 min_distance = distance_to_evaluated_point
-            if distance_to_evaluated_point < 1e-5:
+            if distance_to_evaluated_point < 1e-6:
                 use_suggested_sample = False
             i += 1
         if not use_suggested_sample:
