@@ -46,7 +46,7 @@ class uTS(SamplingPolicyBase):
                 self.Y_aux[j] = np.vstack((self.Y_aux[j], y_new[j]))
                 model_sample[j].set_XY(self.X_aux, self.Y_aux[j])
             y_new = np.squeeze(np.asarray(y_new))
-            val = self.utility.eval_func(y_new, utility_parameter_sample)
+            val = np.atleast_1d(self.utility.eval_func(y_new, utility_parameter_sample))
             return -val
 
         d0 = initial_design('random', self.space, 1)

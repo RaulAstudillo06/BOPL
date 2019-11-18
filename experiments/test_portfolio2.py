@@ -38,7 +38,7 @@ if __name__ == '__main__':
     w_b /= sum(w_b)
 
     start_t = "2012-01-01"
-    end_t = "2016-12-31"
+    end_t = "2012-12-31"
 
     simulated_tcost = cp.TcostModel(half_spread=0.0005 / 2., nonlin_coeff=1., sigma=sigmas, volume=volumes)
     simulated_hcost = cp.HcostModel(borrow_costs=0.0001)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     # --- Sampling policy
     sampling_policy_name = 'uTS'
     if sampling_policy_name is 'uEI':
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='CMA', n_starting=80, n_anchor=8, include_baseline_points=False)
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=False)
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)

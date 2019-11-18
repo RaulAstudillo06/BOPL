@@ -388,7 +388,6 @@ class BOPU(object):
         :param ignored_zipped_X: matrix of input configurations that the user black-lists, i.e., those configurations will not be suggested again.
         :return:
         """
-        suggested_sample = self.sampling_policy.suggest_sample()
         try:
             suggested_sample = self.sampling_policy.suggest_sample()
         except:
