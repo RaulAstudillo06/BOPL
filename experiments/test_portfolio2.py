@@ -38,7 +38,7 @@ if __name__ == '__main__':
     w_b /= sum(w_b)
 
     start_t = "2012-01-01"
-    end_t = "2012-12-31"
+    end_t = "2016-12-31"
 
     simulated_tcost = cp.TcostModel(half_spread=0.0005 / 2., nonlin_coeff=1., sigma=sigmas, volume=volumes)
     simulated_hcost = cp.HcostModel(borrow_costs=0.0001)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
                       affine=False)
 
     # --- Sampling policy
-    sampling_policy_name = 'uTS'
+    sampling_policy_name = 'uEI'
     if sampling_policy_name is 'uEI':
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=False)
         acquisition = uEI_constrained(model, space, optimizer=acquisition_optimizer, utility=utility)
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         attributes = Attributes(f, as_list=False, output_dim=m)
 
         # Initial design
-        initial_design = GPyOpt.experiment_design.initial_design('random', space, 1, experiment_number)
+        initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
         feasible_point = np.atleast_1d([0.31, 0.27, 1.])
         initial_design = np.vstack((initial_design, feasible_point))
 
