@@ -93,7 +93,7 @@ if __name__ == '__main__':
         dynamic_utility_parameter_distribution = False
     elif sampling_policy_name is 'ParEGO':
         model = BasicModel(output_dim=m)
-        sampling_policy = ParEGO(model, space, utility)
+        sampling_policy = ParEGO(model, space, utility, n_starting=500, n_anchor=20)
         dynamic_utility_parameter_distribution = False
         
     # BO model
