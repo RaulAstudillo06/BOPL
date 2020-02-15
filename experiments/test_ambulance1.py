@@ -76,7 +76,7 @@ if __name__ == '__main__':
                       affine=False)
     
     # --- Sampling policy
-    sampling_policy_name = 'uEI2'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI2':
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True, n_starting=500, n_anchor=20)
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         dynamic_utility_parameter_distribution = False
         
     # BO model
-    max_iter = 100
+    max_iter = 150
     experiment_name = 'test_ambulance1'
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
