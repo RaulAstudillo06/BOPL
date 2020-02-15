@@ -38,6 +38,7 @@ class U_AcquisitionOptimizer(object):
         self.number_of_utility_parameter_samples = 10
         self.full_parameter_support = self.utility.parameter_distribution.use_full_support
         self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
+        self.n_attributes = self.model.output_dim
         self.kwargs = kwargs
 
         ## -- save extra options than can be passed to the optimizer
