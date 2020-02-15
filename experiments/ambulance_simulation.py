@@ -7,7 +7,7 @@ import random
 # Global configs
 
 
-def ambulance_simulation(base_loc_x, base_loc_y, T_max = 500, cool_off_period=10, num_ambulance=3, lambda_call=1, time_to_serve_avg=45./60,time_to_serve_std = 15./60,
+def ambulance_simulation(base_loc_x, base_loc_y, T_max = 1000, cool_off_period=10, num_ambulance=3, lambda_call=1, time_to_serve_avg=45./60,time_to_serve_std = 15./60,
 travel_speed_when_on_call = 60., travel_speed_when_free = 40., seed = 1):
 
     global call_table

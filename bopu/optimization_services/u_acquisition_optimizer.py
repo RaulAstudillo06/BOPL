@@ -209,6 +209,40 @@ class U_AcquisitionOptimizer(object):
                         func_val[i,0] += self.expectation_utility.func(parameter, mean[:,i], var[:,i])
                         func_gradient[i,:] += np.matmul(self.expectation_utility.gradient(parameter,mean[:,i],var[:,i]),aux[:,i])
                 return -func_val, -func_gradient
+        else:
+            Z_samples = np.random.normal(size=(50, self.n_attributes))
+
+            def val_func(X):
+                X = np.atleast_2d(X)
+                func_val = np.zeros((X.shape[0], 1))
+                for h in range(self.number_of_gp_hyps_samples):
+                    self.model.set_hyperparameters(h)
+                    mean, var = self.model.predict_noiseless(X)
+                    std = np.sqrt(var)
+                    for i in range(X.shape[0]):
+                        for Z in Z_samples:
+                            func_val[i,0] += self.utility.eval_func(mean[:,i] + np.multiply(std[:,i],Z), parameter)
+                return -func_val
+
+            def val_func_with_gradient(X):
+                X = np.atleast_2d(X)
+                func_val = np.zeros((X.shape[0], 1))
+                func_gradient = np.zeros(X.shape)
+                for h in range(self.number_of_gp_hyps_samples):
+                    self.model.set_hyperparameters(h)
+                    mean, var = self.model.predict_noiseless(X)
+                    std = np.sqrt(var)
+                    dmean_dX = self.model.posterior_mean_gradient(X)
+                    dstd_dX = self.model.posterior_variance_gradient(X)
+                    for i in range(X.shape[0]):
+                        for j in range(self.n_attributes):
+                            dstd_dX[j, i, :] /= (2*std[j,i])
+                        for Z in Z_samples:
+                            aux1 = mean[:, i] + np.multiply(Z, std[:,i])
+                            func_val[i, 0] += self.utility.eval_func(aux1, parameter)
+                            aux2 = dmean_dX[:, i, :] + np.multiply(dstd_dX[:, i, :].T, Z).T
+                            func_gradient[i, :] += np.matmul(self.utility.eval_gradient(aux1, parameter), aux2)
+                return -func_val, -func_gradient
 
         argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
         return argmax
