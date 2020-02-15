@@ -161,7 +161,7 @@ class OptLbfgs(Optimizer):
     '''
     Wrapper for l-bfgs-b to use the true or the approximate gradients.
     '''
-    def __init__(self, bounds, maxiter=200):
+    def __init__(self, bounds, maxiter=500):
         super(OptLbfgs, self).__init__(bounds)
         self.maxiter = maxiter
 
