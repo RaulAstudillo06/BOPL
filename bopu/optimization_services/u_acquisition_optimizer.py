@@ -23,7 +23,7 @@ class U_AcquisitionOptimizer(object):
         - 'CMA': covariance matrix adaptation.
     """
 
-    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', parallel=False, n_starting=360, n_anchor=16, include_baseline_points=True, **kwargs):
+    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', parallel=False, n_starting=400, n_anchor=20, include_baseline_points=True, **kwargs):
 
         self.space = space
         self.model = model
@@ -35,7 +35,7 @@ class U_AcquisitionOptimizer(object):
         self.n_starting = n_starting
         self.n_anchor = n_anchor
         self.include_baseline_points = include_baseline_points
-        self.number_of_utility_parameter_samples = 10
+        self.number_of_utility_parameter_samples = 3
         self.full_parameter_support = self.utility.parameter_distribution.use_full_support
         self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
         self.n_attributes = self.model.output_dim

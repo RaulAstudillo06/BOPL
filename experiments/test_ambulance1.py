@@ -76,9 +76,9 @@ if __name__ == '__main__':
                       affine=False)
     
     # --- Sampling policy
-    sampling_policy_name = 'Random'
+    sampling_policy_name = 'uEI2'
     if sampling_policy_name is 'uEI2':
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True, n_starting=500, n_anchor=20)
+        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         dynamic_utility_parameter_distribution = False
     elif sampling_policy_name is 'ParEGO':
         model = BasicModel(output_dim=m)
-        sampling_policy = ParEGO(model, space, utility, n_starting=500, n_anchor=20)
+        sampling_policy = ParEGO(model, space, utility)
         dynamic_utility_parameter_distribution = False
         
     # BO model
