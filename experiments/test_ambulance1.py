@@ -76,8 +76,8 @@ if __name__ == '__main__':
                       affine=False)
     
     # --- Sampling policy
-    sampling_policy_name = 'uEI2'
-    if sampling_policy_name is 'uEI2':
+    sampling_policy_name = 'ParEGO'
+    if sampling_policy_name is 'uEI':
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)

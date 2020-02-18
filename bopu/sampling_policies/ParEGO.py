@@ -22,12 +22,10 @@ class ParEGO(SamplingPolicyBase):
     """
     analytical_gradient_prediction = True
 
-    def __init__(self, model, space, utility, optimizer='lbfgs', n_starting=360, n_anchor=16,):
+    def __init__(self, model, space, utility, optimizer='lbfgs'):
         super(ParEGO, self).__init__(model, space)
         self.utility = utility
         self.optimizer = optimizer
-        self.n_starting = n_starting
-        self.n_anchor = n_anchor
         self.preference_information = self.utility.parameter_distribution.preference_information
 
     def suggest_sample(self, number_of_samples=1):
@@ -58,7 +56,7 @@ class ParEGO(SamplingPolicyBase):
         aux_utility_param_distribution = UtilityDistribution(support=aux_utility_parameter_support, prob_dist=aux_utility_parameter_prob_distribution, utility_func=aux_utility_func)
         aux_utility = Utility(func=aux_utility_func, gradient=aux_utility_gradient, parameter_distribution=aux_utility_param_distribution, affine=True)
 
-        aux_acquisition_optimizer = U_AcquisitionOptimizer(space=self.space, model=aux_model, utility=aux_utility, optimizer=self.optimizer, n_starting=self.n_starting, n_anchor=self.n_anchor)
+        aux_acquisition_optimizer = U_AcquisitionOptimizer(space=self.space, model=aux_model, utility=aux_utility, optimizer=self.optimizer, include_baseline_points=True)
 
         aux_acquisition = uEI_affine(aux_model, self.space, optimizer=aux_acquisition_optimizer, utility=aux_utility)
         aux_evaluator = GPyOpt.core.evaluators.Sequential(aux_acquisition)

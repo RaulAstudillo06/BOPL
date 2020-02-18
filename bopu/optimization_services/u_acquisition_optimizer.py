@@ -23,7 +23,7 @@ class U_AcquisitionOptimizer(object):
         - 'CMA': covariance matrix adaptation.
     """
 
-    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', parallel=False, n_starting=400, n_anchor=20, include_baseline_points=True, **kwargs):
+    def __init__(self, space, model, utility, expectation_utility=None, optimizer='lbfgs', inner_optimizer='lbfgs', parallel=False, n_starting=400, n_anchor=20, include_baseline_points=False, **kwargs):
 
         self.space = space
         self.model = model
@@ -248,7 +248,7 @@ class U_AcquisitionOptimizer(object):
         argmax = self.optimize_inner_func(f=val_func, f_df=val_func_with_gradient)[0]
         return argmax
 
-    def optimize_inner_func(self, f=None, df=None, f_df=None, duplicate_manager=None, n_starting=200, n_anchor=16):
+    def optimize_inner_func(self, f=None, df=None, f_df=None, duplicate_manager=None, n_starting=400, n_anchor=20):
         """
         Optimizes the input function.
 
