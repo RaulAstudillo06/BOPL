@@ -30,7 +30,7 @@ class Attributes(object):
         if as_list:   
             self.objective = [None]*self.output_dim
             for j in range(self.output_dim):
-                self.objective[j] = GPyOpt.core.task.SingleObjective(func=self.func[j],objective_name=self.objective_name[j])
+                self.objective[j] = GPyOpt.core.task.SingleObjective(func=self.func[j], objective_name=self.objective_name[j])
         else:
             self.objective = func
         self.as_list = as_list
@@ -47,7 +47,7 @@ class Attributes(object):
         else:
             fX = self.objective(X)
             for j in range(self.output_dim):
-                f_eval[j] = np.reshape(fX[j,:], (X.shape[0],1))
+                f_eval[j] = np.reshape(fX[j, :], (X.shape[0], 1))
         return f_eval, cost_eval
 
     def evaluate_as_array(self, X):
@@ -56,7 +56,7 @@ class Attributes(object):
         """
         f_eval = np.empty((self.output_dim, X.shape[0]))
         for j in range(self.output_dim):
-            f_eval[j, :] = self.objective[j].evaluate(X)[0][:,0]
+            f_eval[j, :] = self.objective[j].evaluate(X)[0][:, 0]
         return f_eval
     
     def evaluate_w_noise(self, X):
@@ -64,9 +64,9 @@ class Attributes(object):
         Performs the evaluation of the objectives at x.
         """
         f_noisy_eval, cost_eval = self.evaluate(X)
-        if self.noise_var  is not None:           
+        if self.noise_var is not None:
             for j in range(self.output_dim):
-                f_noisy_eval[j] += np.random.normal(scale = np.sqrt(self.noise_var[j]))
+                f_noisy_eval[j] += np.random.normal(scale=np.sqrt(self.noise_var[j]))
             
         return f_noisy_eval, cost_eval
 
