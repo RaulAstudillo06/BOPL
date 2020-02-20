@@ -45,10 +45,10 @@ class ParEGO(SamplingPolicyBase):
 
         aux_model = MultiOutputGP(output_dim=1, exact_feval=[True], fixed_hyps=False)
 
-        def aux_utility_func(parameter, y):
+        def aux_utility_func(y, parameter):
             return np.dot(parameter, y)
 
-        def aux_utility_gradient(parameter, y):
+        def aux_utility_gradient(y, parameter):
             return parameter
 
         aux_utility_parameter_support = np.ones((1, 1))

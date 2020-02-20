@@ -43,8 +43,9 @@ class BOPU(object):
         self.cost = CostModel(None)
         self.expectation_utility = utility.expectation
         self.n_attributes = self.model.output_dim
-        if self.model.name is 'multi-output GP':
+        if self.model.name == 'multi-output GP':
             self.number_of_gp_hyps_samples = min(10, self.model.number_of_hyps_samples())
+        
         self.utility_support = utility.parameter_distribution.support
         self.utility_prob_dist = utility.parameter_distribution.prob_dist
         self.full_utility_support = self.utility.parameter_distribution.use_full_support
