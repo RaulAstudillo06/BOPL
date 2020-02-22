@@ -94,10 +94,14 @@ class BOPU(object):
 
         if compute_true_integrated_optimal_value:
             if not self.dynamic_utility_parameter_distribution:
+                self.compute_true_integrated_optimal_value = True
                 self.get_true_integrated_optimal_value(filename)
             else:
+                self.compute_true_integrated_optimal_value = False
                 print('It does not make sense to compute the true integrated optimal value when the utility distribution is dynamic.')
-
+        else:
+            self.compute_true_integrated_optimal_value = False
+            
         # Save the options to print and save the results
         self.filename = filename
         self.report_evaluated_designs_only = report_evaluated_designs_only
@@ -469,29 +473,36 @@ class BOPU(object):
     def save_results(self, filename):
         """
         """
-        if self.compute_true_underlying_optimal_value:
-            results_folder_name = self.project_path + '/experiments/results/' + filename[
-                0] + '/historical_underlying_regret'
-            if not os.path.exists(results_folder_name) :
-                os.makedirs(results_folder_name)
-            results_filename = filename[0] + '_' + filename[1] + '_underlying_regret_' + filename[2]
-            results = self.true_underlying_optimal_value - np.atleast_1d(self.historical_underlying_optimal_values)
-        else:
-            results_folder_name = self.project_path + '/experiments/results/' + filename[
-                0] + '/historical_underlying_optimal_values'
+        if self.true_underlying_utility_func is not None:
+            results_folder_name = self.project_path + '/experiments/results/' + filename[0] + '/historical_underlying_optimal_values'
             if not os.path.exists(results_folder_name):
                 os.makedirs(results_folder_name)
             results_filename = filename[0] + '_' + filename[1] + '_underlying_optimal_values_' + filename[2]
             results = np.atleast_1d(self.historical_underlying_optimal_values)
-        directory = results_folder_name + '/' + results_filename + '.txt'
-        np.savetxt(directory, results)
-
+            directory = results_folder_name + '/' + results_filename + '.txt'
+            np.savetxt(directory, results)
+            if self.compute_true_underlying_optimal_value:
+                results_folder_name = self.project_path + '/experiments/results/' + filename[0] + '/historical_underlying_regret'
+                if not os.path.exists(results_folder_name) :
+                    os.makedirs(results_folder_name)
+                results_filename = filename[0] + '_' + filename[1] + '_underlying_regret_' + filename[2]
+                results = self.true_underlying_optimal_value - np.atleast_1d(self.historical_underlying_optimal_values)
+                directory = results_folder_name + '/' + results_filename + '.txt'
+                np.savetxt(directory, results)
+        
         if self.compute_integrated_optimal_values:
-            results_folder_name = self.project_path + '/experiments/results/' + filename[
-                0] + '/historical_integrated_optimal_values'
+            results_folder_name = self.project_path + '/experiments/results/' + filename[0] + '/historical_integrated_optimal_values'
             if not os.path.exists(results_folder_name):
                 os.makedirs(results_folder_name)
             results_filename = filename[0] + '_' + filename[1] + '_integrated_optimal_values_' + filename[2]
             directory = results_folder_name + '/' + results_filename + '.txt'
             results = np.atleast_1d(self.historical_integrated_optimal_values)
             np.savetxt(directory, results)
+            if self.compute_true_integrated_optimal_value:
+                results_folder_name = self.project_path + '/experiments/results/' + filename[0] + '/historical_integrated_regret'
+                if not os.path.exists(results_folder_name):
+                    os.makedirs(results_folder_name)
+                results_filename = filename[0] + '_' + filename[1] + '_integrated_regret_' + filename[2]
+                directory = results_folder_name + '/' + results_filename + '.txt'
+                results = self.true_integrated_optimal_value - np.atleast_1d(self.historical_integrated_optimal_values)
+                np.savetxt(directory, results)
