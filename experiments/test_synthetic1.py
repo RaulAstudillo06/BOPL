@@ -21,13 +21,12 @@ if __name__ == '__main__':
     from bopu import BOPU
     from optimization_services import U_AcquisitionOptimizer
     
-    # Space
+    # Input and output dimensions
     d = 4
-    space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (-2, 2), 'dimensionality': d}])
-    
-    # Model (Multi-output GP)
     m = 3
-    model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)
+    
+    # Space
+    space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (-2, 2), 'dimensionality': d}])
     
     # Attributes
     # Rosenbrock function(-X)
@@ -76,8 +75,9 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_parameter_distribution, affine=True)
     
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
+        model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         sampling_policy = ParEGO(model, space, utility)
         
     # BO model
-    max_iter = 100
+    max_iter = 150
     experiment_name = 'test_synthetic1'
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
@@ -101,19 +101,20 @@ if __name__ == '__main__':
     
         # Initial design
         initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
-    
+        # Run full optimization loop
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, dynamic_utility_parameter_distribution=False)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
                               compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
     else:
-        for i in range(1):
+        for i in range(1, 101):
             experiment_number = i
             filename = [experiment_name, sampling_policy_name, str(experiment_number)]
     
             # Initial design
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
-    
+            
+            # Run full optimization loop
             bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, dynamic_utility_parameter_distribution=False)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                                   utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
