@@ -75,7 +75,7 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_parameter_distribution, affine=True)
     
     # --- Sampling policy
-    sampling_policy_name = 'Random'
+    sampling_policy_name = 'ParEGO'
     if sampling_policy_name is 'uEI':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False,
                               compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
     else:
-        for i in range(1, 101):
+        for i in range(26, 36):
             experiment_number = i
             filename = [experiment_name, sampling_policy_name, str(experiment_number)]
     
