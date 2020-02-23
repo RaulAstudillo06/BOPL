@@ -71,18 +71,27 @@ if __name__ == '__main__':
     utility = Utility(func=utility_func, gradient=utility_gradient, parameter_distribution=utility_param_distribution, affine=True)
 
     # --- Sampling policy
-    sampling_policy_name = 'ParEGO'
+    sampling_policy_name = 'uEI'
+    learn_preferences = False
     if sampling_policy_name is 'uEI':
         model = MultiOutputGP(output_dim=m, exact_feval=[True]*m, fixed_hyps=False) # Model (Multi-output GP)
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
-        dynamic_utility_parameter_distribution = True
+        if learn_preferences:
+            dynamic_utility_parameter_distribution = True
+        else:
+            dynamic_utility_parameter_distribution = False
+            sampling_policy_name = 'uEI_prior'
     elif sampling_policy_name is 'uTS':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
-        dynamic_utility_parameter_distribution = True
+        if learn_preferences:
+            dynamic_utility_parameter_distribution = True
+        else:
+            dynamic_utility_parameter_distribution = False
+            sampling_policy_name = 'uTS_prior'
     elif sampling_policy_name is 'Random':
         model = BasicModel(output_dim=m)
         sampling_policy = Random(model=None, space=space)
@@ -113,7 +122,7 @@ if __name__ == '__main__':
         bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
-        for i in range(26, 36):
+        for i in range(1):
             experiment_number = i
             filename = [experiment_name, sampling_policy_name, str(experiment_number)]
 
