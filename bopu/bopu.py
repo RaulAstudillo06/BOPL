@@ -406,7 +406,7 @@ class BOPU(object):
             distance_to_evaluated_point = euclidean(self.X[i, :], suggested_sample)
             if distance_to_evaluated_point < min_distance:
                 min_distance = distance_to_evaluated_point
-            if distance_to_evaluated_point < 1e-4:
+            if distance_to_evaluated_point < 1e-6:
                 use_suggested_sample = False
             i += 1
         if not use_suggested_sample:
