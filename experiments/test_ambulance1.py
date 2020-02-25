@@ -76,17 +76,26 @@ if __name__ == '__main__':
                       affine=False)
     
     # --- Sampling policy
-    sampling_policy_name = 'uTS'
+    sampling_policy_name = 'uEI'
+    learn_preferences = False
     if sampling_policy_name is 'uEI':
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
-        dynamic_utility_parameter_distribution = True
+        if learn_preferences:
+            dynamic_utility_parameter_distribution = True
+        else:
+            dynamic_utility_parameter_distribution = False
+            sampling_policy_name = 'uEI_prior'
     elif sampling_policy_name is 'uTS':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         sampling_policy = uTS(model, space, optimizer='CMA', utility=utility)
-        dynamic_utility_parameter_distribution = True
+        if learn_preferences:
+            dynamic_utility_parameter_distribution = True
+        else:
+            dynamic_utility_parameter_distribution = False
+            sampling_policy_name = 'uTS_prior'
     elif sampling_policy_name is 'Random':
         model = BasicModel(output_dim=m)
         sampling_policy = Random(model=None, space=space)
