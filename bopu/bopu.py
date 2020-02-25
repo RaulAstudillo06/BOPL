@@ -170,7 +170,8 @@ class BOPU(object):
             optimum, optimal_value = self.evaluation_optimizer.optimize(f=objective_func, parallel=False)
             self.true_underlying_optimum = optimum
             self.true_underlying_optimal_value = -np.atleast_1d(optimal_value)
-            print('True underlying real optimum: {}'.format(np.asscalar(self.true_underlying_optimal_value)))
+            print('True underlying real optimum: {}'.format(np.squeeze(self.true_underlying_optimum)))
+            print('True underlying real optimal value: {}'.format(np.asscalar(self.true_underlying_optimal_value)))
             if filename is not None:
                 results_folder_name = self.project_path + '/experiments/results/' + filename[
                     0] + '/historical_underlying_regret'
