@@ -50,7 +50,7 @@ class GeneralOptimizer(object):
         self.inner_optimizer = choose_optimizer(self.inner_optimizer_name, self.context_manager.noncontext_bounds)
     
     
-    def optimize(self, f=None, df=None, f_df=None, parallel=False, duplicate_manager=None, n_starting=400, n_anchor=28):
+    def optimize(self, f=None, df=None, f_df=None, parallel=False, duplicate_manager=None, n_starting=600, n_anchor=30):
         """
         Optimizes the input function.
 
@@ -84,8 +84,7 @@ class GeneralOptimizer(object):
             #print('optimized points')
             #:print(optimized_points)
         else:
-            optimized_points = [apply_optimizer(self.optimizer, a, f=f, df=None, f_df=f_df, duplicate_manager=duplicate_manager, context_manager=self.context_manager, space = self.space) for a in anchor_points]                 
-                        
+            optimized_points = [apply_optimizer(self.optimizer, a, f=f, df=None, f_df=f_df, duplicate_manager=duplicate_manager, context_manager=self.context_manager, space = self.space) for a in anchor_points]
         x_min, fx_min = min(optimized_points, key=lambda t:t[1])
         if np.asscalar(anchor_points_values[0]) < np.asscalar(fx_min):
             print('anchor_point was best found in evaluation')

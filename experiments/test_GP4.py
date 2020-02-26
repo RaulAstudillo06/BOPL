@@ -24,36 +24,28 @@ if __name__ == '__main__':
     from optimization_services import U_AcquisitionOptimizer
 
     # Input and output dimensions
+    d = 4
     m = 4
-    k = 2
-    d = m + k - 1
 
     # Space
     space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
 
-    # Attributes
-    def f(X):
-        gX = np.zeros((X.shape[0], ))
-        fX = np.ones((m, X.shape[0]))
-        for i in range(k):
-            gX += np.square(X[:, d - i - 1] - 0.5)
-        for i in range(m - 1):
-            fX[0, :] *= np.cos(0.5 * np.pi * X[:, i])
-        for i in range(m - 2):
-            fX[1, :] *= np.cos(0.5 * np.pi * X[:, i])
-        fX[1, :] *= np.sin(0.5 * np.pi * X[:, m - 2])
-        fX[2, :] = np.cos(0.5 * np.pi * X[:, 0]) * np.sin(0.5 * np.pi * X[:, 1])
-        fX[3, :] = np.sin(0.5 * np.pi * X[:, 0])
-        for j in range(m):
-            fX[j, :] *= (1 + gX)
-        return -fX
-
-    attributes = Attributes(f, as_list=False, output_dim=m)
+    # Attributes (preliminaries)
+    I = np.linspace(0., 1., 6)
+    aux = np.meshgrid(I, I, I, I)
+    grid = np.array([a.flatten() for a in aux]).T
+    kernel = []
+    kernel.append(GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.1, 0.2, 0.3, 0.4])))
+    kernel.append(GPy.kern.Matern52(input_dim=d, variance=2., ARD=True, lengthscale=np.atleast_1d([0.3, 0.4, 0.5, 0.6])))
+    cov = []
+    cov.append(kernel[0].K(grid))
+    cov.append(kernel[1].K(grid))
+    mean = np.zeros((6 ** d,))
 
     # Utility function
     def utility_func(y, theta):
         y_aux = np.squeeze(y)
-        val = np.sum(1. - np.exp(-theta*y_aux))/theta
+        val = np.sum(1. - np.exp(-theta*y_aux), axis=0)/theta
         return val
 
     def utility_gradient(y, theta):
@@ -68,8 +60,7 @@ if __name__ == '__main__':
         else:
             random_state = np.random.RandomState(seed)
             samples = random_state.rand(n_samples)
-        samples = 0.9*samples + 0.1
-        samples = np.reshape(samples, (n_samples, 1))
+        samples = 0.4*samples + 0.1
         return samples
 
     utility_parameter_distribution = UtilityDistribution(prior_sample_generator=prior_sample_generator,
@@ -80,7 +71,7 @@ if __name__ == '__main__':
     def expectation_utility_func(mean, var, theta):
         mean_aux = np.squeeze(mean)
         var_aux = np.squeeze(var)
-        val = np.sum(1. - np.exp(-theta*mean_aux + np.square(theta)*var_aux))/ theta
+        val = np.sum(1. - np.exp(-theta*mean_aux + np.square(theta)*var_aux), axis=0)/theta
         return val
 
     def expectation_utility_gradient(mean, var, theta):
@@ -129,10 +120,27 @@ if __name__ == '__main__':
 
     # BO model
     max_iter = 1
-    experiment_name = 'test_dtlz2a_exp'
+    experiment_name = 'test_GP4'
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
         filename = [experiment_name, sampling_policy_name, str(experiment_number)]
+
+        # Attributes
+        aux_model = []
+        for j in range(m):
+            r = np.random.RandomState(j + experiment_number)
+            Y = r.multivariate_normal(mean, cov[j % 2])
+            Y = np.reshape(Y, (6 ** d, 1))
+            aux_model.append(GPy.models.GPRegression(grid, Y, kernel[j % 2], noise_var=1e-10))
+
+        def f(X):
+            X = np.atleast_2d(X)
+            fX = np.empty((m, X.shape[0]))
+            for j in range(m):
+                fX[j, :] = aux_model[j].posterior_mean(X)[:, 0]
+            return fX
+
+        attributes = Attributes(f, as_list=False, output_dim=m)
 
         # Initial design
         initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
@@ -152,17 +160,34 @@ if __name__ == '__main__':
                     dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True,
-                              compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+                              compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
             experiment_number = i
             filename = [experiment_name, sampling_policy_name, str(experiment_number)]
 
+            # Attributes
+            aux_model = []
+            for j in range(m):
+                r = np.random.RandomState(j + experiment_number)
+                Y = r.multivariate_normal(mean, cov[j % 2])
+                Y = np.reshape(Y, (6 ** d, 1))
+                aux_model.append(GPy.models.GPRegression(grid, Y, kernel[j % 2], noise_var=1e-10))
+
+            def f(X):
+                X = np.atleast_2d(X)
+                fX = np.empty((m, X.shape[0]))
+                for j in range(m):
+                    fX[j, :] = aux_model[j].posterior_mean(X)[:, 0]
+                return fX
+
+            attributes = Attributes(f, as_list=False, output_dim=m)
+
             # Initial design
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
             # True underlying utility
-            true_underlying_utility_parameter = 0.2 #utility.sample_parameter_from_prior(1, experiment_number)
+            true_underlying_utility_parameter = 0.1 #utility.sample_parameter_from_prior(1, experiment_number)
             print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
 

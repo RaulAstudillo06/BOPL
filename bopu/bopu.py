@@ -257,7 +257,10 @@ class BOPU(object):
                     marginal_opt_val = self.utility.eval_func(f_at_marginal_max, self.utility_support[l])
                 #print('Current marginal optimum: {}'.format(marginal_argmax))
                 val += self.utility_prob_dist[l]*marginal_opt_val
-            print('Current integrated optimal value: {}'.format(val))
+            if self.compute_true_integrated_optimal_value:
+                print('Current integrated regret: {}'.format(np.asscalar(self.true_integrated_optimal_value - val)))
+            else:
+                print('Current integrated optimal value: {}'.format(val))
             self.historical_integrated_optimal_values.append(val)
 
     def current_marginal_max_value(self, parameter):

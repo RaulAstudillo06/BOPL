@@ -24,66 +24,60 @@ if __name__ == '__main__':
     from optimization_services import U_AcquisitionOptimizer
 
     # Input and output dimensions
-    m = 4
-    k = 2
-    d = m + k - 1
+    d = 2
+    m = 3
 
     # Space
-    space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (0, 1), 'dimensionality': d}])
+    space = GPyOpt.Design_space(space=[{'name': 'var', 'type': 'continuous', 'domain': (-3, 3), 'dimensionality': d}])
 
     # Attributes
     def f(X):
-        gX = np.zeros((X.shape[0], ))
-        fX = np.ones((m, X.shape[0]))
-        for i in range(k):
-            gX += np.square(X[:, d - i - 1] - 0.5)
-        for i in range(m - 1):
-            fX[0, :] *= np.cos(0.5 * np.pi * X[:, i])
-        for i in range(m - 2):
-            fX[1, :] *= np.cos(0.5 * np.pi * X[:, i])
-        fX[1, :] *= np.sin(0.5 * np.pi * X[:, m - 2])
-        fX[2, :] = np.cos(0.5 * np.pi * X[:, 0]) * np.sin(0.5 * np.pi * X[:, 1])
-        fX[3, :] = np.sin(0.5 * np.pi * X[:, 0])
-        for j in range(m):
-            fX[j, :] *= (1 + gX)
+        fX = np.empty((m, X.shape[0]))
+        fX[0, :] = 0.5*(np.square(X[:, 0]) + np.square(X[:, 1])) + np.sin(np.square(X[:, 0]) + np.square(X[:, 1]))
+        fX[1, :] = np.square(3*X[:, 0] - 2*X[:, 1] + 4)/8 + np.square(X[:, 0] - X[:, 1] + 1)/27 + 15
+        fX[2, :] = 1/(np.square(X[:, 0]) + np.square(X[:, 1]) + 1) - 1.1*np.exp(np.square(-X[:, 0]) - np.square(X[:, 1]))
         return -fX
 
     attributes = Attributes(f, as_list=False, output_dim=m)
 
     # Utility function
-    def utility_func(y, parameter):
-        aux = (y.transpose() - parameter).transpose()
-        return -np.sum(np.square(aux), axis=0)
-
-    def utility_gradient(y, parameter):
+    def utility_func(y, theta):
         y_aux = np.squeeze(y)
-        return -2 * (y_aux - parameter)
+        val = np.sum(1. - np.exp(-theta * y_aux), axis=0) / theta
+        return val
+
+    def utility_gradient(y, theta):
+        y_aux = np.squeeze(y)
+        gradient = np.exp(-theta*y_aux)
+        return gradient
 
         #  Parameter distribution
-    X1 = [0., 1./3.]
-    X2 = [1./3., 2./3.]
-    X3 = [2./3., 1.]
-    X4 = [0.5]
-    X5 = [0.5]
-    grid = np.meshgrid(X1, X2, X3, X4, X5)
-    X_pareto = np.array([a.flatten() for a in grid]).T
-    utility_parameter_support = f(X_pareto).T
-    utility_parameter_prob_dist = np.ones((8,)) / 8.
-    utility_parameter_distribution = UtilityDistribution(support=utility_parameter_support,
-                                                     prob_dist=utility_parameter_prob_dist,
+    def prior_sample_generator(n_samples, seed=None):
+        if seed is None:
+            samples = np.random.rand(n_samples)
+        else:
+            random_state = np.random.RandomState(seed)
+            samples = random_state.rand(n_samples)
+        samples = 0.4*samples + 0.1
+        return samples
+
+    utility_parameter_distribution = UtilityDistribution(prior_sample_generator=prior_sample_generator,
                                                      utility_func=utility_func,
                                                      elicitation_strategy=random_preference_elicitation)
 
         # Expectation of utility
-    def expectation_utility_func(mu, var, parameter):
-        aux = (mu.transpose() - parameter).transpose()
-        val = -np.sum(np.square(aux), axis=0) - np.sum(var, axis=0)
+    def expectation_utility_func(mean, var, theta):
+        mean_aux = np.squeeze(mean)
+        var_aux = np.squeeze(var)
+        val = np.sum(1. - np.exp(-theta * mean_aux + np.square(theta) * var_aux), axis=0) / theta
         return val
 
-    def expectation_utility_gradient(mu, var, parameter):
-        mu_aux = np.squeeze(mu)
+    def expectation_utility_gradient(mean, var, theta):
+        mean_aux = np.squeeze(mean)
         var_aux = np.squeeze(var)
-        gradient = -np.concatenate((2 * (mu_aux - parameter), np.ones((len(var_aux),))))
+        mean_gradient = np.exp(-theta*mean_aux + 0.5*np.square(theta)*var_aux)
+        var_gradient = -0.5*theta*mean_gradient
+        gradient = -np.concatenate((mean_gradient, var_gradient))
         return gradient
 
     expectation_utility = ExpectationUtility(expectation_utility_func, expectation_utility_gradient)
@@ -91,7 +85,7 @@ if __name__ == '__main__':
                       expectation=expectation_utility)
 
     # --- Sampling policy
-    sampling_policy_name = 'uEI'
+    sampling_policy_name = 'Random'
     learn_preferences = True
     if sampling_policy_name is 'uEI':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
@@ -123,8 +117,8 @@ if __name__ == '__main__':
         dynamic_utility_parameter_distribution = False
 
     # BO model
-    max_iter = 150
-    experiment_name = 'test_dtlz2a_quad'
+    max_iter = 100
+    experiment_name = 'test_vlmop_exp3'
     if len(sys.argv) > 1:
         experiment_number = int(sys.argv[1])
         filename = [experiment_name, sampling_policy_name, str(experiment_number)]
@@ -147,7 +141,7 @@ if __name__ == '__main__':
                     dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
         bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                               utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True,
-                              compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+                              compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
             experiment_number = i
@@ -171,4 +165,4 @@ if __name__ == '__main__':
                         dynamic_utility_parameter_distribution=dynamic_utility_parameter_distribution)
             bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True,
                                   utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True,
-                                  compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+                                  compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
