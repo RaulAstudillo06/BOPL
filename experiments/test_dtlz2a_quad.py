@@ -13,7 +13,7 @@ if __name__ == '__main__':
     from models import BasicModel
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
-    from sampling_policies.acquisition_functions import uEI_affine
+    from sampling_policies.acquisition_functions import uEI
     from sampling_policies import uTS
     from sampling_policies import ParEGO
     from utility import UtilityDistribution
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs',
                                                        include_baseline_points=True)
-        acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
+        acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
         if learn_preferences:
@@ -133,7 +133,7 @@ if __name__ == '__main__':
         initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
         # True underlying utility
-        true_underlying_utility_parameter = utility.sample_parameter_from_prior(1, experiment_number)
+        true_underlying_utility_parameter = utility.sample_parameter_from_prior(1, experiment_number)[0]
         print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             initial_design = GPyOpt.experiment_design.initial_design('random', space, 2 * (d + 1), experiment_number)
 
             # True underlying utility
-            true_underlying_utility_parameter = utility.sample_parameter_from_prior(1, experiment_number)
+            true_underlying_utility_parameter = utility.sample_parameter_from_prior(1, experiment_number)[0]
             print('True underlying utility parameter: {}'.format(true_underlying_utility_parameter))
 
 

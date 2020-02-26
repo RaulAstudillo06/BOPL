@@ -13,7 +13,7 @@ if __name__ == '__main__':
     from models import BasicModel
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
-    from sampling_policies.acquisition_functions import uEI_affine
+    from sampling_policies.acquisition_functions import uEI
     from sampling_policies import uTS
     from sampling_policies import ParEGO
     from utility import UtilityDistribution
@@ -44,13 +44,16 @@ if __name__ == '__main__':
 
     # Utility function
     def utility_func(y, theta):
+        theta_aux = np.squeeze(theta)
         y_aux = np.squeeze(y)
-        val = np.sum(1. - np.exp(-theta*y_aux), axis=0)/theta
+        val = np.sum(1. - np.exp(-theta_aux * y_aux), axis=0) / theta_aux
+        val /= m
         return val
 
     def utility_gradient(y, theta):
+        theta_aux = np.squeeze(theta)
         y_aux = np.squeeze(y)
-        gradient = np.exp(-theta*y_aux)
+        gradient = np.exp(-theta_aux*y_aux)/m
         return gradient
 
         #  Parameter distribution
@@ -61,6 +64,7 @@ if __name__ == '__main__':
             random_state = np.random.RandomState(seed)
             samples = random_state.rand(n_samples)
         samples = 0.4*samples + 0.1
+        samples = np.reshape(samples, (n_samples, 1))
         return samples
 
     utility_parameter_distribution = UtilityDistribution(prior_sample_generator=prior_sample_generator,
@@ -69,17 +73,20 @@ if __name__ == '__main__':
 
         # Expectation of utility
     def expectation_utility_func(mean, var, theta):
+        theta_aux = np.squeeze(theta)
         mean_aux = np.squeeze(mean)
         var_aux = np.squeeze(var)
-        val = np.sum(1. - np.exp(-theta*mean_aux + np.square(theta)*var_aux), axis=0)/theta
+        val = np.sum(1. - np.exp(-theta_aux * mean_aux + np.square(theta_aux) * var_aux), axis=0) / theta_aux
+        val /= m
         return val
 
     def expectation_utility_gradient(mean, var, theta):
+        theta_aux = np.squeeze(theta)
         mean_aux = np.squeeze(mean)
         var_aux = np.squeeze(var)
-        mean_gradient = np.exp(-theta*mean_aux + 0.5*np.square(theta)*var_aux)
-        var_gradient = -0.5*theta*mean_gradient
-        gradient = -np.concatenate((mean_gradient, var_gradient))
+        mean_gradient = np.exp(-theta_aux*mean_aux + 0.5*np.square(theta_aux)*var_aux)
+        var_gradient = -0.5*theta_aux*mean_gradient
+        gradient = -np.concatenate((mean_gradient, var_gradient))/m
         return gradient
 
     expectation_utility = ExpectationUtility(expectation_utility_func, expectation_utility_gradient)
@@ -93,7 +100,7 @@ if __name__ == '__main__':
         model = MultiOutputGP(output_dim=m, exact_feval=[True] * m, fixed_hyps=False)  # Model (Multi-output GP)
         acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs',
                                                        include_baseline_points=True)
-        acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
+        acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
         if learn_preferences:
