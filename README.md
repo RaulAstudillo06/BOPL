@@ -1,3 +1,3 @@
-# Bayesian Optimization under Preference Uncertainty (BOPU)
-A Bayesian-optimization-based framework for supporting decision-making under preference uncertainty.
+﻿# Bayesian Optimization With Preference Learning (BOPL)
+A novel framework for incorporating user preferences within multi-attribute Bayesian optimization.
 
