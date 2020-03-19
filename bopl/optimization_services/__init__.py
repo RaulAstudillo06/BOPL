@@ -1,1 +1,1 @@
-from .u_acquisition_optimizer import U_AcquisitionOptimizer
+from .acquisition_optimizer import AcquisitionOptimizer

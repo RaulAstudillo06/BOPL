@@ -1,7 +1,7 @@
 # Copyright (c) 2019, Raul Astudillo
 
 from sampling_policies.base import SamplingPolicyBase
-from optimization_services.u_acquisition_optimizer import ContextManager
+from optimization_services.acquisition_optimizer import ContextManager
 
 
 class AcquisitionFunction(SamplingPolicyBase):

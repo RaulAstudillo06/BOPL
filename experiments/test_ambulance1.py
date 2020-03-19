@@ -2,25 +2,23 @@ if __name__ == '__main__':
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     import sys
-    sys.path.append(script_dir[:-11] + 'bopu')
+    sys.path.append(script_dir[:-11] + 'bopl')
     import numpy as np
     import subprocess
-    import aux_software.GPyOpt as GPyOpt
-    import aux_software.GPy as GPy
     from core import Attributes
-    from models import MultiOutputGP
+    from core import BOPL
     from models import BasicModel
+    from models import MultiOutputGP
     from sampling_policies import Random
     from sampling_policies import uTS
     from sampling_policies import ParEGO
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI
-    from utility import UtilityDistribution
     from utility import Utility
-    from utility import ExpectationUtility
+    from utility import UtilityDistribution
     from utility.elicitation_strategies import random_preference_elicitation
-    from bopu import BOPU
-    from optimization_services import U_AcquisitionOptimizer
+    from optimization_services import AcquisitionOptimizer
+    import aux_software.GPyOpt as GPyOpt
     from ambulance_simulation import ambulance_simulation
     import pandas as pd
     
@@ -79,7 +77,7 @@ if __name__ == '__main__':
     sampling_policy_name = 'uEI'
     learn_preferences = False
     if sampling_policy_name is 'uEI':
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
+        acquisition_optimizer = AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', include_baseline_points=True)
         acquisition = uEI(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)

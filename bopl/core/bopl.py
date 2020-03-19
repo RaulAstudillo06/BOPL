@@ -10,7 +10,7 @@ from aux_software.GPyOpt.optimization import GeneralOptimizer
 from aux_software.GPyOpt.experiment_design import initial_design
 
 
-class BOPU(object):
+class BOPL(object):
     """
     Runner of the Bayesian-optimization-under-utility-uncertainty loop. This class wraps the optimization loop around the different handlers.
     :param model: GPyOpt model class.

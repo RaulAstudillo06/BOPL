@@ -2,24 +2,23 @@ if __name__ == '__main__':
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     import sys
-    sys.path.append(script_dir[:-11] + 'bopu')
+    sys.path.append(script_dir[:-11] + 'bopl')
     import numpy as np
-    import aux_software.GPyOpt as GPyOpt
-    import aux_software.GPy as GPy
     from core import Attributes
-    from models import MultiOutputGP
+    from core import BOPL
     from models import BasicModel
+    from models import MultiOutputGP
     from sampling_policies import Random
+    from sampling_policies import ParEGO
+    from sampling_policies import uTS
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_affine
-    from sampling_policies import uTS
-    from sampling_policies import ParEGO
-    from utility import UtilityDistribution
     from utility import Utility
-    from utility import ExpectationUtility
+    from utility import UtilityDistribution
     from utility.elicitation_strategies import random_preference_elicitation
-    from bopu import BOPU
-    from optimization_services import U_AcquisitionOptimizer
+    from optimization_services import AcquisitionOptimizer
+    import aux_software.GPy as GPy
+    import aux_software.GPyOpt as GPyOpt
 
     # Input and output dimensions
     d = 3
@@ -77,7 +76,7 @@ if __name__ == '__main__':
         model = MultiOutputGP(output_dim=m, exact_feval=[True]*m, fixed_hyps=False)
 
         # Sampling policy
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
+        acquisition_optimizer = AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
@@ -131,8 +130,8 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
+        bopl = BOPL(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+        bopl.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
     else:
         for i in range(1):
             experiment_number = i
@@ -170,5 +169,5 @@ if __name__ == '__main__':
             experiment_number = str(experiment_number)
             filename = [experiment_name, sampling_policy_name, experiment_number]
 
-            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)
+            bopl = BOPL(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+            bopl.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=True, compute_integrated_optimal_values=False, compute_true_integrated_optimal_value=False)

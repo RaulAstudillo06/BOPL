@@ -2,21 +2,20 @@ if __name__ == '__main__':
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     import sys
-    sys.path.append(script_dir[:-11] + 'bopu')
+    sys.path.append(script_dir[:-11] + 'bopl')
     import numpy as np
-    import aux_software.GPyOpt as GPyOpt
-    import aux_software.GPy as GPy
     from core import Attributes
+    from core import BOPL
     from core import MultiOutputGP
     from sampling_policies import Random
     from sampling_policies import AcquisitionFunction
     from sampling_policies.acquisition_functions import uEI_affine
-    from utility import UtilityDistribution
     from utility import Utility
     from utility import ExpectationUtility
+    from utility import UtilityDistribution
     from utility.elicitation_strategies import random_preference_elicitation
-    from bopu import BOPU
-    from optimization_services import U_AcquisitionOptimizer
+    from optimization_services import AcquisitionOptimizer
+    import aux_software.GPyOpt as GPyOpt
     # Required for portfolio simulation
     import warnings
     import pandas as pd
@@ -116,14 +115,14 @@ if __name__ == '__main__':
     sampling_policy_name = 'Random'
     if sampling_policy_name is 'uEI':
         # Acquisition optimizer
-        acquisition_optimizer = U_AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
+        acquisition_optimizer = AcquisitionOptimizer(space=space, model=model, utility=utility, optimizer='lbfgs', inner_optimizer='lbfgs')
 
         acquisition = uEI_affine(model, space, optimizer=acquisition_optimizer, utility=utility)
         evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
         sampling_policy = AcquisitionFunction(model, space, acquisition, evaluator)
     elif sampling_policy_name is 'TS':
         sampling_policy = TS(model, optimization_space, optimizer='CMA', scenario_distribution=scenario_distribution,
-                             utility=utility, expectation_utility=expectation_utility)
+                             utility=utility)
         acquisition = None
     elif sampling_policy_name is 'Random':
         sampling_policy = Random(model, space)
@@ -144,8 +143,8 @@ if __name__ == '__main__':
         def true_underlying_utility_func(y):
             return utility_func(y, true_underlying_utility_parameter)
 
-        bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-        bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+        bopl = BOPL(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+        bopl.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
     else:
         for i in range(1):
             experiment_number = str(i)
@@ -170,5 +169,5 @@ if __name__ == '__main__':
             #print(true_underlying_utility_func(f(x)))
             #print('Test ends.')
 
-            bopu = BOPU(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
-            bopu.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)
+            bopl = BOPL(model, space, attributes, sampling_policy, utility, initial_design, true_underlying_utility_func=true_underlying_utility_func, dynamic_utility_parameter_distribution=True)
+            bopl.run_optimization(max_iter=max_iter, filename=filename, report_evaluated_designs_only=True, utility_distribution_update_interval=1, compute_true_underlying_optimal_value=False, compute_integrated_optimal_values=True, compute_true_integrated_optimal_value=True)

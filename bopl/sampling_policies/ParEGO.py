@@ -5,11 +5,11 @@ import aux_software.GPyOpt as GPyOpt
 from utility import UtilityDistribution
 from utility import Utility
 from sampling_policies.AcquisitionFunction import AcquisitionFunction
-from optimization_services import U_AcquisitionOptimizer
+from optimization_services import AcquisitionOptimizer
 from sampling_policies.acquisition_functions import uEI_affine
 from others import chebyshev_scalarization
 from core import preference_encoder
-from bopu import BOPU
+from core import BOPL
 import numpy as np
 
 
@@ -56,13 +56,13 @@ class ParEGO(SamplingPolicyBase):
         aux_utility_param_distribution = UtilityDistribution(support=aux_utility_parameter_support, prob_dist=aux_utility_parameter_prob_distribution, utility_func=aux_utility_func)
         aux_utility = Utility(func=aux_utility_func, gradient=aux_utility_gradient, parameter_distribution=aux_utility_param_distribution, affine=True)
 
-        aux_acquisition_optimizer = U_AcquisitionOptimizer(space=self.space, model=aux_model, utility=aux_utility, optimizer=self.optimizer, include_baseline_points=True)
+        aux_acquisition_optimizer = AcquisitionOptimizer(space=self.space, model=aux_model, utility=aux_utility, optimizer=self.optimizer, include_baseline_points=True)
 
         aux_acquisition = uEI_affine(aux_model, self.space, optimizer=aux_acquisition_optimizer, utility=aux_utility)
         aux_evaluator = GPyOpt.core.evaluators.Sequential(aux_acquisition)
         aux_sampling_policy = AcquisitionFunction(aux_model, self.space, aux_acquisition, aux_evaluator)
-        bopu = BOPU(aux_model, self.space, sampling_policy=aux_sampling_policy, utility=aux_utility, X_init=self.X_aux, Y_init=[scalarized_fX], dynamic_utility_parameter_distribution=False)
-        suggested_sample = bopu.suggest_next_points_to_evaluate()
+        bopl = BOPL(aux_model, self.space, sampling_policy=aux_sampling_policy, utility=aux_utility, X_init=self.X_aux, Y_init=[scalarized_fX], dynamic_utility_parameter_distribution=False)
+        suggested_sample = bopl.suggest_next_points_to_evaluate()
         return suggested_sample
 
     def _sample_posterior_weight_for_chebyshev_scalarization(self):

@@ -12,7 +12,7 @@ random_design_type = "random"
 latin_design_type = "latin"
 
 
-class U_AcquisitionOptimizer(object):
+class AcquisitionOptimizer(object):
     """
     General class for acquisition optimizers defined in domains with mix of discrete, continuous, bandit variables
 

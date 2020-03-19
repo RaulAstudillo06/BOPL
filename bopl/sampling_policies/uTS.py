@@ -2,7 +2,7 @@
 
 import numpy as np
 from sampling_policies.base import SamplingPolicyBase
-from optimization_services.u_acquisition_optimizer import ContextManager
+from optimization_services.acquisition_optimizer import ContextManager
 from aux_software.GPyOpt.experiment_design import initial_design
 from aux_software.GPyOpt.optimization.optimizer import apply_optimizer, choose_optimizer
 from copy import deepcopy
