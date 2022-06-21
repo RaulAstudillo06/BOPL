@@ -13,7 +13,7 @@ matplotlib==3.1.0
 mock==3.0.5
 multiprocess==0.70.7
 numexpr==2.6.9
-numpy==1.16.4
+numpy==1.22.0
 osqp==0.5.0
 pandas==0.24.2
 paramz==0.9.5
