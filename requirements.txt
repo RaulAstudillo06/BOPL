@@ -1,4 +1,4 @@
-certifi==2019.6.16
+certifi==2022.12.7
 cma==2.7.0
 cvxportfolio==0.0.5
 cvxpy==1.0.24
